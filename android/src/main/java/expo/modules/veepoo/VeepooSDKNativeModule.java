@@ -170,6 +170,7 @@ public class VeepooSDKNativeModule extends Module {
           public void onSearchStarted() {
             Log.d(TAG, "Scan started");
           }
+
           @Override
           public void onDeviceFounded(SearchResult result) {
             if (result != null) {
@@ -184,10 +185,12 @@ public class VeepooSDKNativeModule extends Module {
               Log.d(TAG, "Device found: " + result.name);
             }
           }
+
           @Override
           public void onSearchStopped() {
             Log.d(TAG, "Scan stopped");
           }
+
           @Override
           public void onSearchCanceled() {
             Log.d(TAG, "Scan canceled");
@@ -202,22 +205,23 @@ public class VeepooSDKNativeModule extends Module {
   }
 
   @ExpoModule(name = "VeepooSDK")
-public class VeepooEventManager {
-  private final DeviceEventEmitter eventEmitter;
-  
-  public VeepooEventManager(ReactApplicationContext reactContext, DeviceEventEmitter eventEmitter) {
-    this.eventEmitter = eventEmitter;
-  }
-  
-  public void addListener(String eventName) {
-    eventEmitter.addListener(eventName);
-  }
-  
-  public void removeListeners(Integer count) {
-    eventEmitter.removeListeners(count);
-  }
-  
-  public void emitEvent(String eventName, Map<String, Object> payload) {
-    eventEmitter.emit(eventName, payload);
+  public class VeepooEventManager {
+    private final DeviceEventEmitter eventEmitter;
+
+    public VeepooEventManager(ReactApplicationContext reactContext, DeviceEventEmitter eventEmitter) {
+      this.eventEmitter = eventEmitter;
+    }
+
+    public void addListener(String eventName) {
+      eventEmitter.addListener(eventName);
+    }
+
+    public void removeListeners(Integer count) {
+      eventEmitter.removeListeners(count);
+    }
+
+    public void emitEvent(String eventName, Map<String, Object> payload) {
+      eventEmitter.emit(eventName, payload);
+    }
   }
 }
