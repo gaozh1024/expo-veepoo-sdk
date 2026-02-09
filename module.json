@@ -1,0 +1,35 @@
+{
+  "name": "expo-veepoo-sdk",
+  "version": "1.0.0",
+  "description": "Expo module for Veepoo SDK Bluetooth connectivity",
+  "platforms": ["ios", "android"],
+  "ios": {
+    "podspecPath": "./ios/VeepooSDK.podspec"
+  },
+  "android": {
+    "gradlePath": "./android/build.gradle"
+  },
+  "java": {
+    "interfaces": [
+      {
+        "name": "VeepooSDKModule",
+        "package": "expo.modules.veepoo"
+      }
+    ]
+  },
+  "swift": {
+    "interfaces": [
+      {
+        "name": "VeepooSDKModule",
+        "classes": ["VeepooSDK"]
+      }
+    ]
+  },
+  "properties": [
+    {
+      "name": "api",
+      "type": "VeepooSDKModule",
+      "optional": true
+    }
+  ]
+}

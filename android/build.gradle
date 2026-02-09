@@ -1,0 +1,81 @@
+buildscript {
+  def reactNativeVersion = rootProject.hasProperty('reactNativeVersion') ? rootProject.property('reactNativeVersion') : "0.72.7"
+  ext {
+    compileSdkVersion = 34
+    targetSdkVersion = 34
+    minSdkVersion = 23
+    buildToolsVersion = "34.0.0"
+  }
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath "com.android.tools.build:gradle:$buildToolsVersion"
+  }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+  compileSdkVersion rootProject.ext.compileSdkVersion
+  buildToolsVersion rootProject.ext.buildToolsVersion
+
+  defaultConfig {
+    minSdkVersion rootProject.ext.minSdkVersion
+    targetSdkVersion rootProject.ext.targetSdkVersion
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+    }
+  }
+
+  lintOptions {
+    abortOnError false
+  }
+}
+
+repositories {
+    google()
+    mavenCentral()
+    maven {
+        url "$rootDir/libs"
+    }
+}
+
+dependencies {
+    implementation "com.facebook.react:react-native:+"
+
+    // Local SDK dependencies from android/libs
+    implementation(name: 'vpprotocol-2.3.37.15', ext: 'aar')
+    implementation(name: 'vpbluetooth-1.18', ext: 'aar')
+    implementation(name: 'libfastdfu-0.5', ext: 'aar')
+    implementation(name: 'libdfu-1.5', ext: 'aar')
+    implementation(name: 'libble-0.5', ext: 'aar')
+    implementation files('libcomx-0.5.jar')
+    implementation(name: 'jl_rcsp_V0.7.2_527-release', ext: 'aar')
+    implementation(name: 'jl_bt_ota_V1.10.0_10931-release', ext: 'aar')
+    implementation(name: 'abpartool-release', ext: 'aar')
+    implementation(name: 'JL_Watch_V1.13.1_11214-release', ext: 'aar')
+    implementation(name: 'BmpConvert_V1.6.0_10604-release', ext: 'aar')
+    implementation files('AMap2DMap_6.0.0_AMapSearch_9.4.5_AMapLocation_6.2.0_20221026.jar')
+}
+}
+
+repositories {
+  maven {
+    url "$rootDir/../node_modules/react-native/android"
+  }
+  maven {
+    url "$rootDir/../node_modules/jsc-android/dist"
+  }
+  google()
+  mavenCentral()
+}

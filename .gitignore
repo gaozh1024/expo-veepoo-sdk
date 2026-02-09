@@ -59,3 +59,31 @@ typings/
 
 # next.js build output
 .next
+
+# Expo Module
+build/
+dist/
+
+# Android
+android/.gradle/
+android/app/build/
+android/local.properties
+*.iml
+
+# iOS
+ios/Pods/
+ios/*.xcworkspace/
+ios/Podfile.lock
+ios/DerivedData/
+*.xcodeproj/xcuserdata
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

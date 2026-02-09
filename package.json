@@ -1,0 +1,43 @@
+{
+  "name": "@gaozh1024/expo-veepoo-sdk",
+  "version": "1.0.0",
+  "description": "Expo module for Veepoo SDK Bluetooth connectivity",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "prepare": "expo-module prepublishOnly",
+    "prepublishOnly": "expo-module prepublishOnly",
+    "build": "expo-module build",
+    "clean": "expo-module clean",
+    "test": "expo-module test",
+    "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "expo",
+    "react-native",
+    "veepoo",
+    "bluetooth",
+    "ble"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "@expo/config-plugins": "^8.0.0",
+    "@types/events": "^3.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-native": "^0.72.0",
+    "expo-module-scripts": "^3.5.0",
+    "expo-modules-core": "^1.12.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "expo-modules-core": "^1.12.0",
+    "events": "^3.3.0"
+  }
+}
