@@ -1,464 +1,207 @@
-import { NativeModules, NativeEventEmitter, DeviceEventEmitter } from 'react-native';
+import { requireNativeModule } from 'expo-modules-core';
 
 import type {
-  VeepooDevice,
   ConnectionStatus,
-  BluetoothStatus,
   BatteryInfo,
   PersonalInfo,
-  AutoMeasureSetting,
-  ConnectionResult,
   VeepooEvent,
   ScanOptions,
   ConnectOptions,
-  CustomSettingData,
-  DailyHealthData,
-  SleepData,
-  HeartRateData,
-  BloodPressureData,
-  BloodOxygenData,
-  TemperatureData,
-  StressData,
-  BloodGlucoseData,
   DeviceFunctions,
-  VeepooErrorCode,
+  PasswordData,
+  SocialMsgData,
   ReadOriginProgress,
-} from './types';
+  Language,
+  AutoMeasureSetting,
+  HeartRateTestResult,
+  BloodPressureTestResult,
+  BloodOxygenTestResult,
+  TemperatureTestResult,
+} from './types.js';
 
-const LINKING_ERROR = `The package 'expo-veepoo-sdk' doesn't seem to be linked. Make sure:\n\n` +
-  `- You rebuilt the app after installing the package\n` +
-  `- You are not using Expo Go\n`;
-
-const VeepooSDKNativeModule = NativeModules.VeepooSDKNativeModule
-  ? NativeModules.VeepooSDKNativeModule
-  : new Proxy(
-      {},
-      {
-        get() {
-          throw new Error(LINKING_ERROR);
-        },
-      }
-    );
+const LINKING_ERROR =
+  "The package 'expo-veepoo-sdk' doesn't seem to be linked. Make sure:\n\n" +
+  '- You rebuilt the app after installing the package\n' +
+  '- You are not using Expo Go (this module requires a development build)\n';
 
 export interface NativeVeepooSDKInterface {
+  init(): Promise<void>;
   isBluetoothEnabled(): Promise<boolean>;
   requestPermissions(): Promise<boolean>;
-  startScanning(options?: ScanOptions): Promise<void>;
-  stopScanning(): Promise<void>;
-  connectToDevice(deviceId: string, options?: ConnectOptions): Promise<void>;
-  disconnectFromDevice(deviceId: string): Promise<void>;
+  startScan(options?: ScanOptions): Promise<void>;
+  stopScan(): Promise<void>;
+  connect(deviceId: string, options?: ConnectOptions): Promise<void>;
+  disconnect(deviceId: string): Promise<void>;
   getConnectionStatus(deviceId: string): Promise<ConnectionStatus>;
-  sendData(deviceId: string, data: number[]): Promise<void>;
+  verifyPassword(password: string, is24Hour: boolean): Promise<PasswordData>;
+  readBattery(): Promise<BatteryInfo>;
+  syncPersonalInfo(info: PersonalInfo): Promise<boolean>;
+  readDeviceFunctions(): Promise<DeviceFunctions>;
+  readSocialMsgData(): Promise<SocialMsgData>;
+  startReadOriginData(): Promise<void>;
+  readAutoMeasureSetting(): Promise<AutoMeasureSetting[]>;
+  modifyAutoMeasureSetting(setting: AutoMeasureSetting): Promise<void>;
+  setLanguage(language: Language): Promise<boolean>;
+  startHeartRateTest(): Promise<void>;
+  stopHeartRateTest(): Promise<void>;
+  startBloodPressureTest(): Promise<void>;
+  stopBloodPressureTest(): Promise<void>;
+  startBloodOxygenTest(): Promise<void>;
+  stopBloodOxygenTest(): Promise<void>;
+  startTemperatureTest(): Promise<void>;
+  stopTemperatureTest(): Promise<void>;
+  startStressTest(): Promise<void>;
+  stopStressTest(): Promise<void>;
+  startBloodGlucoseTest(): Promise<void>;
+  stopBloodGlucoseTest(): Promise<void>;
   addListener(event: VeepooEvent): void;
   removeListeners(count: number): void;
 }
 
-export class VeepooSDK implements NativeVeepooSDKInterface {
-  private eventEmitter: typeof DeviceEventEmitter;
+let NativeModule: NativeVeepooSDKInterface;
+
+try {
+  NativeModule = requireNativeModule('VeepooSDK');
+} catch {
+  NativeModule = new Proxy({} as NativeVeepooSDKInterface, {
+    get() {
+      throw new Error(LINKING_ERROR);
+    },
+  });
+}
+
+export { NativeModule as NativeVeepooSDK };
+
+class VeepooSDKNativeWrapper implements NativeVeepooSDKInterface {
+  private native: NativeVeepooSDKInterface;
 
   constructor() {
-    this.eventEmitter = DeviceEventEmitter;
+    this.native = NativeModule;
   }
 
-  private emitEvent(eventName: VeepooEvent, payload?: any): void {
-    this.eventEmitter.emit(`VeepooSDK_${eventName}`, payload);
+  async init(): Promise<void> {
+    return this.native.init();
   }
 
   async isBluetoothEnabled(): Promise<boolean> {
-    try {
-      const result = await VeepooSDKNativeModule.isBluetoothEnabled();
-      return result;
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to check Bluetooth status:', error);
-      return false;
-    }
+    return this.native.isBluetoothEnabled();
   }
 
   async requestPermissions(): Promise<boolean> {
-    try {
-      const result = await VeepooSDKNativeModule.requestPermissions();
-      return result;
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to request permissions:', error);
-      return false;
-    }
+    return this.native.requestPermissions();
   }
 
   async startScan(options?: ScanOptions): Promise<void> {
-    try {
-      const scanOptions = options || {};
-      await VeepooSDKNativeModule.startScanDevice(scanOptions);
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to start scanning:', error);
-      throw error;
-    }
-  }
-
-  async startScanning(options?: ScanOptions): Promise<void> {
-    return this.startScan(options);
+    return this.native.startScan(options);
   }
 
   async stopScan(): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.stopScanDevice();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to stop scanning:', error);
-    }
+    return this.native.stopScan();
   }
 
-  async stopScanning(): Promise<void> {
-    return this.stopScan();
+  async connect(deviceId: string, options?: ConnectOptions): Promise<void> {
+    return this.native.connect(deviceId, options);
   }
 
-  async connectToDevice(
-    deviceId: string,
-    options?: ConnectOptions
-  ): Promise<void> {
-    try {
-      const connectOptions = options || {};
-      await VeepooSDKNativeModule.connectDevice(deviceId, connectOptions);
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to connect device:', error);
-      throw error;
-    }
-  }
-
-  async disconnectDevice(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.disconnectDevice(deviceId);
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to disconnect device:', error);
-    }
-  }
-
-  async disconnectFromDevice(deviceId: string): Promise<void> {
-    return this.disconnectDevice(deviceId);
+  async disconnect(deviceId: string): Promise<void> {
+    return this.native.disconnect(deviceId);
   }
 
   async getConnectionStatus(deviceId: string): Promise<ConnectionStatus> {
-    try {
-      const result = await VeepooSDKNativeModule.getConnectionStatus(deviceId);
-      return result;
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to get connection status:', error);
-      return 'disconnected';
-    }
+    return this.native.getConnectionStatus(deviceId);
   }
 
-  async sendData(deviceId: string, data: number[]): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.sendData(deviceId, data);
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to send data:', error);
-      throw error;
-    }
+  async verifyPassword(password: string, is24Hour: boolean = false): Promise<PasswordData> {
+    return this.native.verifyPassword(password, is24Hour);
   }
 
-  async verifyPassword(
-    password: string,
-    is24Hour: boolean = false
-  ): Promise<boolean> {
-    try {
-      const result = await VeepooSDKNativeModule.verifyPassword(password, is24Hour);
-      return result;
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to verify password:', error);
-      return false;
-    }
-  }
-
-  async readBattery(deviceId: string): Promise<BatteryInfo> {
-    try {
-      const result = await VeepooSDKNativeModule.readBattery();
-      return this.normalizeBatteryInfo(result);
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to read battery:', error);
-      throw error;
-    }
+  async readBattery(): Promise<BatteryInfo> {
+    return this.native.readBattery();
   }
 
   async syncPersonalInfo(info: PersonalInfo): Promise<boolean> {
-    try {
-      await VeepooSDKNativeModule.syncPersonInfo(
-        info.sex,
-        info.height,
-        info.weight,
-        info.age,
-        info.stepAim,
-        info.sleepAim
-      );
-      return true;
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to sync personal info:', error);
-      return false;
-    }
+    return this.native.syncPersonalInfo(info);
   }
 
-  async readAutoMeasureSetting(deviceId: string): Promise<AutoMeasureSetting[]> {
-    try {
-      const result = await VeepooSDKNativeModule.readAutoMeasureSetting();
-      return this.normalizeAutoMeasureSettings(result);
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to read auto measure setting:', error);
-      throw error;
-    }
+  async readDeviceFunctions(): Promise<DeviceFunctions> {
+    return this.native.readDeviceFunctions();
   }
 
-  async modifyAutoMeasureSetting(
-    deviceId: string,
-    setting: AutoMeasureSetting
-  ): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.modifyAutoMeasureSetting(setting);
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to modify auto measure setting:', error);
-      throw error;
-    }
+  async readSocialMsgData(): Promise<SocialMsgData> {
+    return this.native.readSocialMsgData();
   }
 
-  async readSleepData(deviceId: string, dayOffset: number = 0): Promise<SleepData[]> {
-    try {
-      const result = await VeepooSDKNativeModule.readSleepData(dayOffset);
-      return this.normalizeSleepData(result);
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to read sleep data:', error);
-      throw error;
-    }
+  async startReadOriginData(): Promise<void> {
+    return this.native.startReadOriginData();
   }
 
-  async readSportStep(deviceId: string, dayOffset: number = 0): Promise<DailyHealthData> {
-    try {
-      const result = await VeepooSDKNativeModule.readSportStep(dayOffset);
-      return this.normalizeSportData(result);
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to read sport step:', error);
-      throw error;
-    }
+  async readAutoMeasureSetting(): Promise<AutoMeasureSetting[]> {
+    return this.native.readAutoMeasureSetting();
   }
 
-  async readOriginData(dayOffset: number = 0): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.readOriginData(dayOffset);
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to read origin data:', error);
-      throw error;
-    }
+  async modifyAutoMeasureSetting(setting: AutoMeasureSetting): Promise<void> {
+    return this.native.modifyAutoMeasureSetting(setting);
   }
 
-  async startDetectHeart(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.startDetectHeart();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to start heart rate detection:', error);
-      throw error;
-    }
+  async setLanguage(language: Language): Promise<boolean> {
+    return this.native.setLanguage(language);
   }
 
-  async stopDetectHeart(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.stopDetectHeart();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to stop heart rate detection:', error);
-      throw error;
-    }
+  async startHeartRateTest(): Promise<void> {
+    return this.native.startHeartRateTest();
   }
 
-  async startDetectBP(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.startDetectBP();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to start blood pressure detection:', error);
-      throw error;
-    }
+  async stopHeartRateTest(): Promise<void> {
+    return this.native.stopHeartRateTest();
   }
 
-  async stopDetectBP(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.stopDetectBP();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to stop blood pressure detection:', error);
-      throw error;
-    }
+  async startBloodPressureTest(): Promise<void> {
+    return this.native.startBloodPressureTest();
   }
 
-  async startDetectSPO2H(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.startDetectSPO2H();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to start SpO2 detection:', error);
-      throw error;
-    }
+  async stopBloodPressureTest(): Promise<void> {
+    return this.native.stopBloodPressureTest();
   }
 
-  async stopDetectSPO2H(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.stopDetectSPO2H();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to stop SpO2 detection:', error);
-      throw error;
-    }
+  async startBloodOxygenTest(): Promise<void> {
+    return this.native.startBloodOxygenTest();
   }
 
-  async startDetectTemperature(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.startDetectTempture();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to start temperature detection:', error);
-      throw error;
-    }
+  async stopBloodOxygenTest(): Promise<void> {
+    return this.native.stopBloodOxygenTest();
   }
 
-  async stopDetectTemperature(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.stopDetectTempture();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to stop temperature detection:', error);
-      throw error;
-    }
+  async startTemperatureTest(): Promise<void> {
+    return this.native.startTemperatureTest();
   }
 
-  async measurePressure(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.measurePressure();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to measure pressure:', error);
-      throw error;
-    }
+  async stopTemperatureTest(): Promise<void> {
+    return this.native.stopTemperatureTest();
   }
 
-  async cancelMeasurePressure(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.cancelMeasurePressure();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to cancel pressure measurement:', error);
-      throw error;
-    }
+  async startStressTest(): Promise<void> {
+    return this.native.startStressTest();
   }
 
-  async measureBloodGlucose(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.measureBloodGlucose();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to measure blood glucose:', error);
-      throw error;
-    }
+  async stopStressTest(): Promise<void> {
+    return this.native.stopStressTest();
   }
 
-  async cancelMeasureBloodGlucose(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.cancelMeasureBloodGlucose();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to cancel blood glucose measurement:', error);
-      throw error;
-    }
+  async startBloodGlucoseTest(): Promise<void> {
+    return this.native.startBloodGlucoseTest();
   }
 
-  async measureStress(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.measurePressure();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to measure stress:', error);
-      throw error;
-    }
-  }
-
-  async cancelMeasureStress(deviceId: string): Promise<void> {
-    try {
-      await VeepooSDKNativeModule.cancelMeasurePressure();
-    } catch (error) {
-      console.error('[VeepooSDK] Failed to cancel stress measurement:', error);
-      throw error;
-    }
+  async stopBloodGlucoseTest(): Promise<void> {
+    return this.native.stopBloodGlucoseTest();
   }
 
   addListener(event: VeepooEvent): void {
-    VeepooSDKNativeModule.addListener(event);
+    this.native.addListener(event);
   }
 
   removeListeners(count: number): void {
-    VeepooSDKNativeModule.removeListeners(count);
-  }
-
-  private normalizeBatteryInfo(rawData: any): BatteryInfo {
-    if (!rawData) {
-      return {
-        level: 0,
-        percent: false,
-        powerModel: 0,
-        state: 0,
-        bat: 0,
-        isLowBattery: false,
-      };
-    }
-
-    const batteryLevel = rawData.level ?? 0;
-    const isPercent = rawData.isPercent ?? false;
-    const powerModel = rawData.powerModel ?? 0;
-    const state = rawData.state ?? 0;
-    const bat = rawData.bat ?? 0;
-    const isLowBattery = rawData.isLowBattery ?? false;
-
-    return {
-      level: batteryLevel,
-      percent: isPercent,
-      powerModel: powerModel,
-      state: state,
-      bat: bat,
-      isLowBattery: isLowBattery,
-    };
-  }
-
-  private normalizeAutoMeasureSettings(rawData: any): AutoMeasureSetting[] {
-    if (!rawData || !Array.isArray(rawData)) {
-      return [];
-    }
-
-    return rawData.map((item: any) => ({
-      type: item.type || '',
-      enabled: Boolean(item.enabled),
-    }));
-  }
-
-  private normalizeSleepData(rawData: any): SleepData[] {
-    if (!rawData || !Array.isArray(rawData)) {
-      return [];
-    }
-
-    return rawData.map((item: any) => ({
-      date: item.date || '',
-      deepSleepDuration: item.deepSleepDuration ?? 0,
-      lightSleepDuration: item.lightSleepDuration ?? 0,
-      remSleepDuration: item.remSleepDuration ?? 0,
-      awakeDuration: item.awakeDuration ?? 0,
-      totalSleepDuration: item.totalSleepDuration ?? 0,
-      sleepEfficiency: item.sleepEfficiency ?? 0,
-      sleepScore: item.sleepScore,
-      napDuration: item.napDuration,
-    }));
-  }
-
-  private normalizeSportData(rawData: any): DailyHealthData {
-    if (!rawData) {
-      return {
-        date: '',
-        stepCount: 0,
-        distance: 0,
-        calories: 0,
-      };
-    }
-
-    const date = rawData.date || '';
-    const stepCount = rawData.Step || 0;
-    const distance = parseFloat(rawData.Dis || '0');
-    const calories = parseFloat(rawData.Cal || '0');
-
-    return {
-      date: date,
-      stepCount,
-      distance,
-      calories,
-    };
+    this.native.removeListeners(count);
   }
 }
 
-export default new VeepooSDK();
+export default new VeepooSDKNativeWrapper();

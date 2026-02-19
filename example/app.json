@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Veepoo SDK Example",
+    "slug": "veepoo-example",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.veepoo.example",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "需要蓝牙权限来连接 Veepoo 设备",
+        "NSBluetoothPeripheralUsageDescription": "需要蓝牙权限来扫描和连接设备"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.veepoo.example",
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "@gaozh1024/expo-veepoo-sdk",
+        {
+          "bluetoothAlwaysPermission": "需要蓝牙权限来连接 Veepoo 设备",
+          "bluetoothPeripheralPermission": "需要蓝牙权限来扫描和连接设备"
+        }
+      ]
+    ],
+    "scheme": "veepoo-example"
+  }
+}

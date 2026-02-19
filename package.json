@@ -22,22 +22,27 @@
   ],
   "author": "",
   "license": "MIT",
+  "type": "commonjs",
+  "expo": {
+    "plugin": "./build/plugin/index.js"
+  },
   "peerDependencies": {
     "expo": "*",
     "react": "*",
     "react-native": "*"
   },
   "devDependencies": {
-    "@expo/config-plugins": "^8.0.0",
     "@types/events": "^3.0.0",
     "@types/react": "^18.0.0",
     "@types/react-native": "^0.72.0",
     "expo-module-scripts": "^3.5.0",
     "expo-modules-core": "^1.12.0",
+    "react-native": "^0.84.0",
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "expo-modules-core": "^1.12.0",
-    "events": "^3.3.0"
+    "@expo/config-plugins": "~9.0.17",
+    "events": "^3.3.0",
+    "expo-modules-core": "^1.12.0"
   }
 }

@@ -8,28 +8,5 @@
   },
   "android": {
     "gradlePath": "./android/build.gradle"
-  },
-  "java": {
-    "interfaces": [
-      {
-        "name": "VeepooSDKModule",
-        "package": "expo.modules.veepoo"
-      }
-    ]
-  },
-  "swift": {
-    "interfaces": [
-      {
-        "name": "VeepooSDKModule",
-        "classes": ["VeepooSDK"]
-      }
-    ]
-  },
-  "properties": [
-    {
-      "name": "api",
-      "type": "VeepooSDKModule",
-      "optional": true
-    }
-  ]
+  }
 }
