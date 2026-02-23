@@ -1,5 +1,5 @@
-import { EventEmitter } from 'events';
-import NativeVeepooSDK from './NativeVeepooSDK.js';
+import { requireNativeModule } from 'expo-modules-core';
+import type { EventSubscription } from 'expo-modules-core';
 
 import type {
   VeepooDevice,
@@ -25,36 +25,37 @@ import type {
   HalfHourData,
   VeepooError,
 } from './types.js';
+import type { NativeVeepooSDKInterface } from './NativeVeepooSDK.js';
 
-let DeviceEventEmitter: typeof import('react-native').DeviceEventEmitter | null = null;
+type EventListener = (payload: unknown) => void;
 
-function getDeviceEventEmitter() {
-  if (!DeviceEventEmitter) {
-    try {
-      DeviceEventEmitter = require('react-native').DeviceEventEmitter;
-    } catch {
-      DeviceEventEmitter = null;
-    }
-  }
-  return DeviceEventEmitter;
+const LINKING_ERROR =
+  "The package 'expo-veepoo-sdk' doesn't seem to be linked. Make sure:\n\n" +
+  '- You rebuilt the app after installing the package\n' +
+  '- You are not using Expo Go (this module requires a development build)\n';
+
+let NativeModule: NativeVeepooSDKInterface;
+try {
+  NativeModule = requireNativeModule<NativeVeepooSDKInterface>('VeepooSDK');
+} catch {
+  NativeModule = new Proxy({} as NativeVeepooSDKInterface, {
+    get() {
+      throw new Error(LINKING_ERROR);
+    },
+  });
 }
 
-export class VeepooSDK extends EventEmitter {
+export class VeepooSDK {
   private isScanning = false;
   private isInitialized = false;
   private connectedDeviceId: string | null = null;
   private eventListenersSetup = false;
-
-  constructor() {
-    super();
-  }
+  private listeners: Map<VeepooEvent, Set<EventListener>> = new Map();
+  private nativeSubscriptions: EventSubscription[] = [];
 
   private setupEventListeners(): void {
     if (this.eventListenersSetup) return;
     this.eventListenersSetup = true;
-
-    const emitter = getDeviceEventEmitter();
-    if (!emitter) return;
 
     const events: VeepooEvent[] = [
       'deviceFound',
@@ -84,17 +85,27 @@ export class VeepooSDK extends EventEmitter {
     ];
 
     events.forEach((event) => {
-      NativeVeepooSDK.addListener(event);
-    });
-
-    events.forEach((event) => {
-      emitter.addListener(
-        `VeepooSDK_${event}`,
-        (payload: VeepooEventPayload[VeepooEvent]) => {
-          this.emit(event, payload);
+      const subscription = (NativeModule as unknown as { addListener: (event: string, listener: (payload: unknown) => void) => EventSubscription }).addListener(
+        event,
+        (payload: unknown) => {
+          this.emitLocal(event, payload);
         }
       );
+      this.nativeSubscriptions.push(subscription);
     });
+  }
+
+  private emitLocal(event: VeepooEvent, payload: unknown): void {
+    const eventListeners = this.listeners.get(event);
+    if (eventListeners) {
+      eventListeners.forEach((listener) => {
+        try {
+          listener(payload);
+        } catch (e) {
+          console.error(`Error in event listener for ${event}:`, e);
+        }
+      });
+    }
   }
 
   private handleError(error: unknown, code: VeepooError['code'], deviceId?: string): VeepooError {
@@ -103,20 +114,20 @@ export class VeepooSDK extends EventEmitter {
       message: error instanceof Error ? error.message : String(error),
       deviceId,
     };
-    this.emit('error', veepooError);
+    this.emitLocal('error', veepooError);
     return veepooError;
   }
 
   async init(): Promise<void> {
     if (this.isInitialized) return;
     this.setupEventListeners();
-    await NativeVeepooSDK.init();
+    await NativeModule.init();
     this.isInitialized = true;
   }
 
   async checkBluetoothStatus(): Promise<boolean> {
     try {
-      return await NativeVeepooSDK.isBluetoothEnabled();
+      return await NativeModule.isBluetoothEnabled();
     } catch (error) {
       this.handleError(error, 'UNKNOWN');
       return false;
@@ -125,7 +136,7 @@ export class VeepooSDK extends EventEmitter {
 
   async requestPermissions(): Promise<boolean> {
     try {
-      return await NativeVeepooSDK.requestPermissions();
+      return await NativeModule.requestPermissions();
     } catch (error) {
       this.handleError(error, 'PERMISSION_DENIED');
       return false;
@@ -137,7 +148,7 @@ export class VeepooSDK extends EventEmitter {
 
     try {
       this.isScanning = true;
-      await NativeVeepooSDK.startScan(options);
+      await NativeModule.startScan(options);
     } catch (error) {
       this.isScanning = false;
       throw this.handleError(error, 'UNKNOWN');
@@ -148,7 +159,7 @@ export class VeepooSDK extends EventEmitter {
     if (!this.isScanning) return;
 
     try {
-      await NativeVeepooSDK.stopScan();
+      await NativeModule.stopScan();
       this.isScanning = false;
     } catch (error) {
       this.isScanning = false;
@@ -158,7 +169,7 @@ export class VeepooSDK extends EventEmitter {
 
   async connect(deviceId: string, options?: ConnectOptions): Promise<void> {
     try {
-      await NativeVeepooSDK.connect(deviceId, options);
+      await NativeModule.connect(deviceId, options);
       this.connectedDeviceId = deviceId;
     } catch (error) {
       throw this.handleError(error, 'CONNECTION_FAILED', deviceId);
@@ -170,7 +181,7 @@ export class VeepooSDK extends EventEmitter {
     if (!id) return;
 
     try {
-      await NativeVeepooSDK.disconnect(id);
+      await NativeModule.disconnect(id);
       if (this.connectedDeviceId === id) {
         this.connectedDeviceId = null;
       }
@@ -184,7 +195,7 @@ export class VeepooSDK extends EventEmitter {
     if (!id) return 'disconnected';
 
     try {
-      return await NativeVeepooSDK.getConnectionStatus(id);
+      return await NativeModule.getConnectionStatus(id);
     } catch (error) {
       this.handleError(error, 'UNKNOWN', id);
       return 'disconnected';
@@ -192,87 +203,87 @@ export class VeepooSDK extends EventEmitter {
   }
 
   async verifyPassword(password: string = '0000', is24Hour: boolean = false): Promise<PasswordData> {
-    return NativeVeepooSDK.verifyPassword(password, is24Hour);
+    return NativeModule.verifyPassword(password, is24Hour);
   }
 
   async readBattery(): Promise<BatteryInfo> {
-    return NativeVeepooSDK.readBattery();
+    return NativeModule.readBattery();
   }
 
   async syncPersonalInfo(info: PersonalInfo): Promise<boolean> {
-    return NativeVeepooSDK.syncPersonalInfo(info);
+    return NativeModule.syncPersonalInfo(info);
   }
 
   async readDeviceFunctions(): Promise<DeviceFunctions> {
-    return NativeVeepooSDK.readDeviceFunctions();
+    return NativeModule.readDeviceFunctions();
   }
 
   async readSocialMsgData(): Promise<SocialMsgData> {
-    return NativeVeepooSDK.readSocialMsgData();
+    return NativeModule.readSocialMsgData();
   }
 
   async startReadOriginData(): Promise<void> {
-    return NativeVeepooSDK.startReadOriginData();
+    return NativeModule.startReadOriginData();
   }
 
   async readAutoMeasureSetting(): Promise<AutoMeasureSetting[]> {
-    return NativeVeepooSDK.readAutoMeasureSetting();
+    return NativeModule.readAutoMeasureSetting();
   }
 
   async modifyAutoMeasureSetting(setting: AutoMeasureSetting): Promise<void> {
-    return NativeVeepooSDK.modifyAutoMeasureSetting(setting);
+    return NativeModule.modifyAutoMeasureSetting(setting);
   }
 
   async setLanguage(language: Language): Promise<boolean> {
-    return NativeVeepooSDK.setLanguage(language);
+    return NativeModule.setLanguage(language);
   }
 
   async startHeartRateTest(): Promise<void> {
-    return NativeVeepooSDK.startHeartRateTest();
+    return NativeModule.startHeartRateTest();
   }
 
   async stopHeartRateTest(): Promise<void> {
-    return NativeVeepooSDK.stopHeartRateTest();
+    return NativeModule.stopHeartRateTest();
   }
 
   async startBloodPressureTest(): Promise<void> {
-    return NativeVeepooSDK.startBloodPressureTest();
+    return NativeModule.startBloodPressureTest();
   }
 
   async stopBloodPressureTest(): Promise<void> {
-    return NativeVeepooSDK.stopBloodPressureTest();
+    return NativeModule.stopBloodPressureTest();
   }
 
   async startBloodOxygenTest(): Promise<void> {
-    return NativeVeepooSDK.startBloodOxygenTest();
+    return NativeModule.startBloodOxygenTest();
   }
 
   async stopBloodOxygenTest(): Promise<void> {
-    return NativeVeepooSDK.stopBloodOxygenTest();
+    return NativeModule.stopBloodOxygenTest();
   }
 
   async startTemperatureTest(): Promise<void> {
-    return NativeVeepooSDK.startTemperatureTest();
+    return NativeModule.startTemperatureTest();
   }
 
   async stopTemperatureTest(): Promise<void> {
-    return NativeVeepooSDK.stopTemperatureTest();
+    return NativeModule.stopTemperatureTest();
   }
 
   async startStressTest(): Promise<void> {
-    return NativeVeepooSDK.startStressTest();
+    return NativeModule.startStressTest();
   }
 
   async stopStressTest(): Promise<void> {
-    return NativeVeepooSDK.stopStressTest();
+    return NativeModule.stopStressTest();
   }
 
   async startBloodGlucoseTest(): Promise<void> {
-    return NativeVeepooSDK.startBloodGlucoseTest();
+    return NativeModule.startBloodGlucoseTest();
   }
 
   async stopBloodGlucoseTest(): Promise<void> {
-    return NativeVeepooSDK.stopBloodGlucoseTest();
+    return NativeModule.stopBloodGlucoseTest();
   }
 
   isScanningActive(): boolean {
@@ -291,7 +302,10 @@ export class VeepooSDK extends EventEmitter {
     event: K,
     listener: (payload: VeepooEventPayload[K]) => void
   ): this {
-    super.on(event, listener as (...args: unknown[]) => void);
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
+    }
+    this.listeners.get(event)!.add(listener as EventListener);
     return this;
   }
 
@@ -299,7 +313,10 @@ export class VeepooSDK extends EventEmitter {
     event: K,
     listener: (payload: VeepooEventPayload[K]) => void
   ): this {
-    super.off(event, listener as (...args: unknown[]) => void);
+    const eventListeners = this.listeners.get(event);
+    if (eventListeners) {
+      eventListeners.delete(listener as EventListener);
+    }
     return this;
   }
 
@@ -307,13 +324,33 @@ export class VeepooSDK extends EventEmitter {
     event: K,
     listener: (payload: VeepooEventPayload[K]) => void
   ): this {
-    super.once(event, listener as (...args: unknown[]) => void);
+    const onceWrapper: EventListener = (payload) => {
+      this.off(event, listener);
+      (listener as EventListener)(payload);
+    };
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
+    }
+    this.listeners.get(event)!.add(onceWrapper);
     return this;
   }
 
   removeAllListeners(event?: VeepooEvent): this {
-    super.removeAllListeners(event);
+    if (event) {
+      this.listeners.delete(event);
+    } else {
+      this.listeners.clear();
+    }
     return this;
+  }
+
+  destroy(): void {
+    this.nativeSubscriptions.forEach((subscription) => {
+      subscription.remove();
+    });
+    this.nativeSubscriptions = [];
+    this.listeners.clear();
+    this.eventListenersSetup = false;
   }
 }
 

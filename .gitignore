@@ -95,6 +95,7 @@ Thumbs.db
 # Example project
 example/node_modules/
 example/.expo/
+example/.yalc/
 example/dist/
 example/web-build/
 example/*.jks
@@ -103,3 +104,27 @@ example/*.p12
 example/*.key
 example/*.mobileprovision
 example/*.orig.*
+
+# iOS Framework binaries
+ios/VeepooSDK/Frameworks/
+ios/Frameworks/
+
+# Android libraries
+android/libs/
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Cache directories
+.turbo/
+.cache/
+
+# Environment files
+.env
+.env.*
+*.local
+
+example/package-lock.json
+example/yalc.lock
