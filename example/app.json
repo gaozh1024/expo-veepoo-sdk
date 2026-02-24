@@ -21,7 +21,8 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "需要蓝牙权限来连接 Veepoo 设备",
         "NSBluetoothPeripheralUsageDescription": "需要蓝牙权限来扫描和连接设备"
-      }
+      },
+      "appleTeamId": "3VFQG52CNR"
     },
     "android": {
       "adaptiveIcon": {

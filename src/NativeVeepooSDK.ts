@@ -1,4 +1,4 @@
-import { requireNativeModule } from 'expo-modules-core';
+import { requireNativeModule, EventSubscription } from 'expo-modules-core';
 
 import type {
   ConnectionStatus,
@@ -54,7 +54,7 @@ export interface NativeVeepooSDKInterface {
   stopStressTest(): Promise<void>;
   startBloodGlucoseTest(): Promise<void>;
   stopBloodGlucoseTest(): Promise<void>;
-  addListener(event: VeepooEvent): void;
+  addListener(event: VeepooEvent, listener: (payload: unknown) => void): EventSubscription;
   removeListeners(count: number): void;
 }
 
@@ -195,8 +195,8 @@ class VeepooSDKNativeWrapper implements NativeVeepooSDKInterface {
     return this.native.stopBloodGlucoseTest();
   }
 
-  addListener(event: VeepooEvent): void {
-    this.native.addListener(event);
+  addListener(event: VeepooEvent, listener: (payload: unknown) => void): EventSubscription {
+    return this.native.addListener(event, listener);
   }
 
   removeListeners(count: number): void {

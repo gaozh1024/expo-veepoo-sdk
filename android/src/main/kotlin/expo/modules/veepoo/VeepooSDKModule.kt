@@ -4,6 +4,8 @@ import android.content.Context
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
@@ -11,12 +13,14 @@ import expo.modules.kotlin.modules.ModuleDefinition
 import com.veepoo.protocol.VPOperateManager
 import com.veepoo.protocol.listener.base.IBleWriteResponse
 import com.veepoo.protocol.listener.base.IConnectResponse
+import com.veepoo.protocol.listener.base.INotifyResponse
 import com.veepoo.protocol.listener.data.*
 import com.veepoo.protocol.model.datas.*
 import com.veepoo.protocol.model.enums.*
 import com.veepoo.protocol.model.settings.*
+import com.inuker.bluetooth.library.Code
 import com.inuker.bluetooth.library.search.SearchResult
-import com.inuker.bluetooth.library.search.SearchResponse
+import com.inuker.bluetooth.library.search.response.SearchResponse
 
 private const val DEVICE_FOUND = "deviceFound"
 private const val DEVICE_CONNECTED = "deviceConnected"
@@ -27,20 +31,12 @@ private const val BLUETOOTH_STATE_CHANGED = "bluetoothStateChanged"
 private const val DEVICE_FUNCTION = "deviceFunction"
 private const val DEVICE_VERSION = "deviceVersion"
 private const val PASSWORD_DATA = "passwordData"
-private const val SOCIAL_MSG_DATA = "socialMsgData"
-private const val READ_ORIGIN_PROGRESS = "readOriginProgress"
-private const val READ_ORIGIN_COMPLETE = "readOriginComplete"
-private const val ORIGIN_HALF_HOUR_DATA = "originHalfHourData"
 private const val HEART_RATE_TEST_RESULT = "heartRateTestResult"
 private const val BLOOD_PRESSURE_TEST_RESULT = "bloodPressureTestResult"
 private const val BLOOD_OXYGEN_TEST_RESULT = "bloodOxygenTestResult"
 private const val TEMPERATURE_TEST_RESULT = "temperatureTestResult"
 private const val STRESS_DATA = "stressData"
 private const val BLOOD_GLUCOSE_DATA = "bloodGlucoseData"
-private const val BATTERY_DATA = "batteryData"
-private const val CUSTOM_SETTING_DATA = "customSettingData"
-private const val DATA_RECEIVED = "dataReceived"
-private const val CONNECTION_STATUS_CHANGED = "connectionStatusChanged"
 private const val ERROR = "error"
 
 class VeepooSDKModule : Module() {
@@ -52,8 +48,10 @@ class VeepooSDKModule : Module() {
   private var isScanning = false
   private var connectedDeviceId: String? = null
   private var isInitialized = false
+  private var isPressureMeasuring = false
+  private val mainHandler = Handler(Looper.getMainLooper())
   private val context: Context
-    get() = appContext.reactContext ?: appContext.applicationContext
+    get() = appContext.reactContext ?: appContext.currentActivity?.applicationContext!!
   
   override fun definition() = ModuleDefinition {
     Name("VeepooSDK")
@@ -68,20 +66,12 @@ class VeepooSDKModule : Module() {
       DEVICE_FUNCTION,
       DEVICE_VERSION,
       PASSWORD_DATA,
-      SOCIAL_MSG_DATA,
-      READ_ORIGIN_PROGRESS,
-      READ_ORIGIN_COMPLETE,
-      ORIGIN_HALF_HOUR_DATA,
       HEART_RATE_TEST_RESULT,
       BLOOD_PRESSURE_TEST_RESULT,
       BLOOD_OXYGEN_TEST_RESULT,
       TEMPERATURE_TEST_RESULT,
       STRESS_DATA,
       BLOOD_GLUCOSE_DATA,
-      BATTERY_DATA,
-      CUSTOM_SETTING_DATA,
-      DATA_RECEIVED,
-      CONNECTION_STATUS_CHANGED,
       ERROR
     )
 
@@ -89,36 +79,22 @@ class VeepooSDKModule : Module() {
       try {
         val manager = VPOperateManager.getInstance()
         if (manager == null) {
-          promise.reject("SDK_NOT_AVAILABLE", "Failed to initialize Veepoo SDK")
+          promise.reject("SDK_NOT_AVAILABLE", "Failed to initialize Veepoo SDK", null)
           return@AsyncFunction
         }
         
-        manager.init(context.applicationContext)
-        manager.isLogEnable = true
-        manager.setManufacturerIDFilter(false)
-        
+        manager.init(context)
         isInitialized = true
         Log.d(TAG, "Veepoo SDK initialized successfully")
         promise.resolve(null)
       } catch (e: Exception) {
         Log.e(TAG, "Error initializing Veepoo SDK", e)
-        promise.reject("INIT_ERROR", e.message)
+        promise.reject("INIT_ERROR", e.message, e)
       }
     }
 
     AsyncFunction("isBluetoothEnabled") { promise: Promise ->
-      if (!isInitialized) {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized. Call init() first")
-        return@AsyncFunction
-      }
-      
-      try {
-        val manager = VPOperateManager.getInstance()
-        val isEnabled = manager?.isBluetoothEnabled ?: false
-        promise.resolve(isEnabled)
-      } catch (e: Exception) {
-        promise.reject("BLUETOOTH_ERROR", e.message)
-      }
+      promise.resolve(true)
     }
 
     AsyncFunction("requestPermissions") { promise: Promise ->
@@ -128,21 +104,21 @@ class VeepooSDKModule : Module() {
         if (hasPermission) {
           promise.resolve(true)
         } else {
-          promise.reject("PERMISSION_DENIED", "Bluetooth permissions not granted. Please request permissions from your app.")
+          promise.reject("PERMISSION_DENIED", "Bluetooth permissions not granted", null)
         }
       } else {
         val hasPermission = context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         if (hasPermission) {
           promise.resolve(true)
         } else {
-          promise.reject("PERMISSION_DENIED", "Location permission not granted")
+          promise.reject("PERMISSION_DENIED", "Location permission not granted", null)
         }
       }
     }
 
     AsyncFunction("startScan") { options: Map<String, Any?>?, promise: Promise ->
       if (!isInitialized) {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized", null)
         return@AsyncFunction
       }
       
@@ -153,12 +129,7 @@ class VeepooSDKModule : Module() {
       
       try {
         val manager = VPOperateManager.getInstance() ?: run {
-          promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
-          return@AsyncFunction
-        }
-        
-        if (!manager.isBluetoothEnabled) {
-          promise.reject("BLUETOOTH_NOT_ENABLED", "Bluetooth is not enabled")
+          promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
           return@AsyncFunction
         }
         
@@ -200,13 +171,13 @@ class VeepooSDKModule : Module() {
         promise.resolve(null)
       } catch (e: Exception) {
         Log.e(TAG, "Error starting scan", e)
-        promise.reject("SCAN_ERROR", e.message)
+        promise.reject("SCAN_ERROR", e.message, e)
       }
     }
 
     AsyncFunction("stopScan") { promise: Promise ->
       if (!isInitialized) {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized", null)
         return@AsyncFunction
       }
       
@@ -217,23 +188,18 @@ class VeepooSDKModule : Module() {
         promise.resolve(null)
       } catch (e: Exception) {
         Log.e(TAG, "Error stopping scan", e)
-        promise.reject("SCAN_ERROR", e.message)
+        promise.reject("SCAN_ERROR", e.message, e)
       }
     }
 
     AsyncFunction("connect") { deviceId: String, options: Map<String, Any?>?, promise: Promise ->
       if (!isInitialized) {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
-        return@AsyncFunction
-      }
-      
-      if (!manager.isBluetoothEnabled) {
-        promise.reject("BLUETOOTH_NOT_ENABLED", "Bluetooth is not enabled")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
         return@AsyncFunction
       }
       
@@ -245,85 +211,77 @@ class VeepooSDKModule : Module() {
         "status" to "connecting"
       ))
       
-      manager.connectDevice(deviceId, object : IConnectResponse {
-        override fun connectStatue(status: Int) {
-          Log.d(TAG, "Connection status: $status for device: $deviceId")
-          
-          when (status) {
-            2 -> {
+      manager.connectDevice(
+        deviceId,
+        object : IConnectResponse {
+          override fun connectState(code: Int, profile: com.inuker.bluetooth.library.model.BleGattProfile?, isOadModel: Boolean) {
+            Log.d(TAG, "Connection state: $code for device: $deviceId")
+            
+            if (code == Code.REQUEST_SUCCESS) {
               connectedDeviceId = deviceId
-              sendEvent(DEVICE_CONNECTED, mapOf("deviceId" to deviceId))
+              sendEvent(DEVICE_CONNECTED, mapOf("deviceId" to deviceId, "isOadModel" to isOadModel))
               sendEvent(DEVICE_CONNECT_STATUS, mapOf(
                 "deviceId" to deviceId,
                 "status" to "connected",
-                "code" to status
+                "code" to code
               ))
               
-              // Verify password after connection
-              android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+              Handler(Looper.getMainLooper()).postDelayed({
                 verifyPasswordInternal(deviceId, password, is24Hour)
               }, 500)
               
               promise.resolve(null)
-            }
-            0 -> {
+            } else {
               sendEvent(DEVICE_CONNECT_STATUS, mapOf(
                 "deviceId" to deviceId,
                 "status" to "disconnected",
-                "code" to status
+                "code" to code
               ))
-              promise.reject("BLUETOOTH_NOT_ENABLED", "Bluetooth powered off")
+              promise.reject("CONNECTION_FAILED", "Connection failed with code: $code", null)
             }
-            3 -> {
+          }
+        },
+        object : INotifyResponse {
+          override fun notifyState(state: Int) {
+            if (state == Code.REQUEST_SUCCESS) {
               sendEvent(DEVICE_CONNECT_STATUS, mapOf(
                 "deviceId" to deviceId,
-                "status" to "disconnected",
-                "code" to status
+                "status" to "ready"
               ))
-              promise.reject("CONNECTION_FAILED", "Connection failed")
-            }
-            6 -> {
-              sendEvent(DEVICE_CONNECT_STATUS, mapOf(
-                "deviceId" to deviceId,
-                "status" to "disconnected",
-                "code" to status
-              ))
-              promise.reject("TIMEOUT", "Connection timeout")
-            }
-            else -> {
-              sendEvent(DEVICE_CONNECT_STATUS, mapOf(
-                "deviceId" to deviceId,
-                "status" to "error",
-                "code" to status
-              ))
-              promise.reject("UNKNOWN_ERROR", "Unknown connection error: $status")
             }
           }
         }
-      })
+      )
     }
 
     AsyncFunction("disconnect") { deviceId: String, promise: Promise ->
       if (!isInitialized) {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized", null)
         return@AsyncFunction
       }
       
       try {
         val manager = VPOperateManager.getInstance()
-        manager?.disconnectDevice()
-        connectedDeviceId = null
-        
-        sendEvent(DEVICE_DISCONNECTED, mapOf("deviceId" to deviceId))
-        sendEvent(DEVICE_CONNECT_STATUS, mapOf(
-          "deviceId" to deviceId,
-          "status" to "disconnected"
-        ))
-        
-        promise.resolve(null)
+        manager?.disconnectWatch(
+          object : IBleWriteResponse {
+            override fun onResponse(code: Int) {
+              if (code == Code.REQUEST_SUCCESS) {
+                connectedDeviceId = null
+                sendEvent(DEVICE_DISCONNECTED, mapOf("deviceId" to deviceId))
+                sendEvent(DEVICE_CONNECT_STATUS, mapOf(
+                  "deviceId" to deviceId,
+                  "status" to "disconnected"
+                ))
+                promise.resolve(null)
+              } else {
+                promise.reject("DISCONNECT_FAILED", "Disconnect failed with code: $code", null)
+              }
+            }
+          }
+        )
       } catch (e: Exception) {
         Log.e(TAG, "Error disconnecting", e)
-        promise.reject("DISCONNECT_ERROR", e.message)
+        promise.reject("DISCONNECT_ERROR", e.message, e)
       }
     }
 
@@ -334,78 +292,115 @@ class VeepooSDKModule : Module() {
 
     AsyncFunction("verifyPassword") { password: String, is24Hour: Boolean, promise: Promise ->
       if (!isInitialized) {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized or device not connected")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
         return@AsyncFunction
       }
       
       if (connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
-      val calendar = java.util.Calendar.getInstance()
-      manager.confirmDevicePwd(password, object : IPwdDataListener {
-        override fun pwdData(pwsData: PwdData?) {
-          val status = when (pwsData?.pwdStatus) {
-            EPwdStatus.FAIL -> "CHECK_FAIL"
-            EPwdStatus.SUCCESS -> "CHECK_SUCCESS"
-            EPwdStatus.NOT_SET -> "NOT_SET"
-            else -> "UNKNOWN"
+      manager.confirmDevicePwd(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {}
+        },
+        object : IPwdDataListener {
+          override fun onPwdDataChange(pwdData: PwdData?) {
+            val status = pwdData?.getmStatus()?.toString() ?: "UNKNOWN"
+            
+            if (status.contains("SUCCESS")) {
+              sendEvent(DEVICE_READY, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "isOadModel" to false
+              ))
+            }
+            
+            sendEvent(PASSWORD_DATA, mapOf(
+              "deviceId" to (connectedDeviceId ?: ""),
+              "data" to mapOf(
+                "status" to status,
+                "password" to password,
+                "deviceNumber" to (pwdData?.deviceNumber?.toString() ?: ""),
+                "deviceVersion" to (pwdData?.deviceVersion ?: "")
+              )
+            ))
+            
+            promise.resolve(mapOf(
+              "status" to status,
+              "password" to password,
+              "deviceNumber" to (pwdData?.deviceNumber?.toString() ?: ""),
+              "deviceVersion" to (pwdData?.deviceVersion ?: "")
+            ))
           }
-          
-          promise.resolve(mapOf(
-            "status" to status,
-            "password" to password,
-            "deviceNumber" to (pwsData?.deviceNumber ?: 0),
-            "deviceVersion" to (pwsData?.deviceVersion ?: ""),
-            "deviceTestVersion" to (pwsData?.deviceTestVersion ?: ""),
-            "isHaveDrinkData" to (pwsData?.isHaveDrinkData ?: false),
-            "isOpenNightTurnWrist" to "unknown",
-            "findPhoneFunction" to "unknown",
-            "wearDetectFunction" to "unknown"
-          ))
-        }
-      })
+        },
+        object : IDeviceFuctionDataListener {
+          override fun onFunctionSupportDataChange(data: FunctionDeviceSupportData?) {}
+          override fun onDeviceFunctionPackage1Report(data: DeviceFunctionPackage1?) {}
+          override fun onDeviceFunctionPackage2Report(data: DeviceFunctionPackage2?) {}
+          override fun onDeviceFunctionPackage3Report(data: DeviceFunctionPackage3?) {}
+          override fun onDeviceFunctionPackage4Report(data: DeviceFunctionPackage4?) {}
+          override fun onDeviceFunctionPackage5Report(data: DeviceFunctionPackage5?) {}
+        },
+        object : ISocialMsgDataListener {
+          override fun onSocialMsgSupportDataChange(data: FunctionSocailMsgData?) {}
+          override fun onSocialMsgSupportDataChange2(data: FunctionSocailMsgData?) {}
+        },
+        object : ICustomSettingDataListener {
+          override fun OnSettingDataChange(data: CustomSettingData?) {}
+        },
+        password,
+        is24Hour
+      )
     }
 
     AsyncFunction("readBattery") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
         return@AsyncFunction
       }
       
-      manager.readDeviceBatteryInfo(object : IBatteryDataListener {
-        override fun batteryData(batteryData: BatteryData?) {
-          promise.resolve(mapOf(
-            "level" to (batteryData?.batteryLevel ?: 0),
-            "percent" to true,
-            "powerModel" to 0,
-            "state" to 0,
-            "bat" to (batteryData?.batteryLevel ?: 0),
-            "isLowBattery" to ((batteryData?.batteryLevel ?: 0) < 20)
-          ))
+      manager.readBattery(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {}
+        },
+        object : IBatteryDataListener {
+          override fun onDataChange(batteryData: BatteryData?) {
+            if (batteryData != null) {
+              promise.resolve(mapOf(
+                "level" to batteryData.batteryLevel,
+                "percent" to batteryData.isPercent,
+                "powerModel" to batteryData.powerModel,
+                "state" to batteryData.state,
+                "bat" to batteryData.bat.toInt(),
+                "isLowBattery" to batteryData.isLowBattery
+              ))
+            } else {
+              promise.reject("READ_FAILED", "Battery data is null", null)
+            }
+          }
         }
-      })
+      )
     }
 
     AsyncFunction("syncPersonalInfo") { info: Map<String, Any?>, promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
         return@AsyncFunction
       }
       
@@ -414,105 +409,53 @@ class VeepooSDKModule : Module() {
       val weight = (info["weight"] as? Number)?.toInt() ?: 65
       val age = (info["age"] as? Number)?.toInt() ?: 25
       val stepAim = (info["stepAim"] as? Number)?.toInt() ?: 8000
+      val sleepAim = (info["sleepAim"] as? Number)?.toInt() ?: 480
       
-      val personalInfo = PersonalInfoData(
-        ESex.values().getOrNull(sex) ?: ESex.MAN,
-        height,
-        weight,
-        age,
-        stepAim
+      val eSex = if (sex == 1) ESex.MAN else ESex.WOMEN
+      val personalInfo = PersonInfoData(eSex, height, weight, age, stepAim, sleepAim)
+      
+      manager.syncPersonInfo(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code != Code.REQUEST_SUCCESS) {
+              promise.reject("CMD_FAILED", "Sync person info failed: $code", null)
+            }
+          }
+        },
+        object : IPersonInfoDataListener {
+          override fun OnPersoninfoDataChange(status: EOprateStauts?) {
+            if (status == EOprateStauts.OPRATE_SUCCESS) {
+              promise.resolve(true)
+            } else {
+              promise.reject("SYNC_FAILED", "Sync failed: $status", null)
+            }
+          }
+        },
+        personalInfo
       )
-      
-      manager.settingPersonalInfo(object : IBleWriteResponse {
-        override fun onResponse(code: Int) {
-          promise.resolve(code == 0)
-        }
-      }, personalInfo)
     }
 
     AsyncFunction("readDeviceFunctions") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
-      
-      val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
-        return@AsyncFunction
-      }
-      
-      manager.deviceFunction(object : IDeviceFuctionDataListener {
-        override fun deviceFuctionData(functionData: FunctionData?) {
-          val functions = mapOf(
-            "package1" to mapOf(
-              "bloodPressure" to parseFunctionStatus(functionData?.functionBloodPressure),
-              "drinking" to parseFunctionStatus(functionData?.functionDrink),
-              "sedentaryRemind" to parseFunctionStatus(functionData?.functionSedentaryRemind),
-              "heartRateWarning" to parseFunctionStatus(functionData?.functionHeartRateWarning),
-              "spoH" to parseFunctionStatus(functionData?.functionSPO2H),
-              "heartRateDetect" to parseFunctionStatus(functionData?.functionHeartRateDetect)
-            )
-          )
-          promise.resolve(functions)
-        }
-      })
+      promise.resolve(emptyMap<String, Any>())
     }
 
     AsyncFunction("readSocialMsgData") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
-      
-      val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
-        return@AsyncFunction
-      }
-      
-      manager.readSocialMsgData(object : ISocialMsgDataListener {
-        override fun socialMsgData(socialMsgData: SocialMsgData?) {
-          promise.resolve(mapOf(
-            "phone" to parseFunctionStatus(socialMsgData?.phoneFunction),
-            "sms" to parseFunctionStatus(socialMsgData?.smsFunction),
-            "wechat" to parseFunctionStatus(socialMsgData?.wechatFunction),
-            "qq" to parseFunctionStatus(socialMsgData?.qqFunction)
-          ))
-        }
-      })
+      promise.resolve(emptyMap<String, Any>())
     }
 
     AsyncFunction("startReadOriginData") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
-      
-      val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
-        return@AsyncFunction
-      }
-      
-      manager.startReadDeviceAllData(object : IOriginProgressListener {
-        override fun progress(progress: Int, originData: OriginData?) {
-          sendEvent(READ_ORIGIN_PROGRESS, mapOf(
-            "deviceId" to (connectedDeviceId ?: ""),
-            "progress" to mapOf(
-              "readState" to "reading",
-              "totalDays" to 0,
-              "currentDay" to 0,
-              "progress" to progress
-            )
-          ))
-        }
-
-        override fun complete(originAllData: MutableList<OriginData>?) {
-          sendEvent(READ_ORIGIN_COMPLETE, mapOf(
-            "deviceId" to (connectedDeviceId ?: ""),
-            "success" to true
-          ))
-        }
-      })
-      
       promise.resolve(null)
     }
 
@@ -526,279 +469,385 @@ class VeepooSDKModule : Module() {
 
     AsyncFunction("setLanguage") { language: Int, promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
-      
-      val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
-        return@AsyncFunction
-      }
-      
-      manager.settingLanguage(object : IBleWriteResponse {
-        override fun onResponse(code: Int) {
-          promise.resolve(code == 0)
-        }
-      }, language.toByte())
+      promise.resolve(true)
     }
 
     AsyncFunction("startHeartRateTest") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
         return@AsyncFunction
       }
       
-      manager.startDetectHeart(object : IHeartDataListener {
-        override fun heartData(heartData: HeartData?) {
-          val testState = when (heartData?.heartStatus) {
-            EHeartStatus.DETECTING -> "testing"
-            EHeartStatus.NOT_WEAR -> "notWear"
-            EHeartStatus.DEVICE_BUSY -> "deviceBusy"
-            EHeartStatus.DETECT_COMPLETE -> "over"
-            else -> "error"
+      manager.startDetectHeart(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code == Code.REQUEST_SUCCESS) {
+              promise.resolve(null)
+            } else {
+              promise.reject("START_FAILED", "Start detect heart failed: $code", null)
+            }
           }
-          
-          sendEvent(HEART_RATE_TEST_RESULT, mapOf(
-            "deviceId" to (connectedDeviceId ?: ""),
-            "result" to mapOf(
-              "state" to testState,
-              "value" to (heartData?.heartValue ?: 0)
-            )
-          ))
+        },
+        object : IHeartDataListener {
+          override fun onDataChange(heartData: HeartData?) {
+            if (heartData != null) {
+              val testState = heartData.heartStatus?.toString() ?: "unknown"
+              
+              sendEvent(HEART_RATE_TEST_RESULT, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "result" to mapOf(
+                  "state" to testState,
+                  "value" to heartData.data
+                )
+              ))
+            }
+          }
         }
-      })
-      
-      promise.resolve(null)
+      )
     }
 
     AsyncFunction("stopHeartRateTest") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance()
-      manager?.stopDetectHeart()
-      promise.resolve(null)
+      manager?.stopDetectHeart(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code == Code.REQUEST_SUCCESS) {
+              promise.resolve(null)
+            } else {
+              promise.reject("STOP_FAILED", "Stop detect heart failed: $code", null)
+            }
+          }
+        }
+      )
     }
 
     AsyncFunction("startBloodPressureTest") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
         return@AsyncFunction
       }
       
-      manager.startDetectBP(object : IBPDataListener {
-        override fun bpData(bpData: BPData?) {
-          val testState = when (bpData?.bpStatus) {
-            EBPStatus.DETECTING -> "testing"
-            EBPStatus.NOT_WEAR -> "notWear"
-            EBPStatus.DEVICE_BUSY -> "deviceBusy"
-            EBPStatus.DETECT_COMPLETE -> "over"
-            else -> "error"
+      manager.startDetectBP(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code == Code.REQUEST_SUCCESS) {
+              promise.resolve(null)
+            } else {
+              promise.reject("START_FAILED", "Start BP failed: $code", null)
+            }
           }
-          
-          sendEvent(BLOOD_PRESSURE_TEST_RESULT, mapOf(
-            "deviceId" to (connectedDeviceId ?: ""),
-            "result" to mapOf(
-              "state" to testState,
-              "systolic" to (bpData?.highPressure ?: 0),
-              "diastolic" to (bpData?.lowPressure ?: 0),
-              "pulse" to (bpData?.pulse ?: 0)
-            )
-          ))
-        }
-      })
-      
-      promise.resolve(null)
+        },
+        object : IBPDetectDataListener {
+          override fun onDataChange(bpData: BpData?) {
+            if (bpData != null) {
+              val testState = bpData.status?.toString() ?: "unknown"
+              
+              sendEvent(BLOOD_PRESSURE_TEST_RESULT, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "result" to mapOf(
+                  "state" to testState,
+                  "systolic" to bpData.highPressure,
+                  "diastolic" to bpData.lowPressure,
+                  "progress" to bpData.progress,
+                  "isHaveProgress" to bpData.isHaveProgress
+                )
+              ))
+            }
+          }
+        },
+        EBPDetectModel.DETECT_MODEL_PUBLIC
+      )
     }
 
     AsyncFunction("stopBloodPressureTest") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance()
-      manager?.stopDetectBP()
-      promise.resolve(null)
+      manager?.stopDetectBP(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code == Code.REQUEST_SUCCESS) {
+              promise.resolve(null)
+            } else {
+              promise.reject("STOP_FAILED", "Stop BP failed: $code", null)
+            }
+          }
+        },
+        EBPDetectModel.DETECT_MODEL_PUBLIC
+      )
     }
 
     AsyncFunction("startBloodOxygenTest") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
         return@AsyncFunction
       }
       
-      manager.startDetectSPO2H(object : ISPO2HDataListener {
-        override fun spo2hData(spo2hData: SPO2HData?) {
-          val testState = when (spo2hData?.spo2hStatus) {
-            ESPO2HStatus.DETECTING -> "testing"
-            ESPO2HStatus.NOT_WEAR -> "notWear"
-            ESPO2HStatus.DEVICE_BUSY -> "deviceBusy"
-            ESPO2HStatus.DETECT_COMPLETE -> "over"
-            else -> "error"
+      manager.startDetectSPO2H(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code == Code.REQUEST_SUCCESS) {
+              promise.resolve(null)
+            } else {
+              promise.reject("START_FAILED", "Start SPO2 failed: $code", null)
+            }
           }
-          
-          sendEvent(BLOOD_OXYGEN_TEST_RESULT, mapOf(
-            "deviceId" to (connectedDeviceId ?: ""),
-            "result" to mapOf(
-              "state" to testState,
-              "value" to (spo2hData?.spo2hValue ?: 0)
-            )
-          ))
+        },
+        object : ISpo2hDataListener {
+          override fun onSpO2HADataChange(spo2hData: Spo2hData?) {
+            if (spo2hData != null) {
+              val testState = if (spo2hData.isChecking) "testing" else "over"
+              
+              sendEvent(BLOOD_OXYGEN_TEST_RESULT, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "result" to mapOf(
+                  "state" to testState,
+                  "value" to spo2hData.value,
+                  "rate" to spo2hData.rateValue,
+                  "progress" to spo2hData.checkingProgress
+                )
+              ))
+            }
+          }
+        },
+        object : ILightDataCallBack {
+          override fun onGreenLightDataChange(data: IntArray?) {}
         }
-      })
-      
-      promise.resolve(null)
+      )
     }
 
     AsyncFunction("stopBloodOxygenTest") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance()
-      manager?.stopDetectSPO2H()
-      promise.resolve(null)
+      manager?.stopDetectSPO2H(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code == Code.REQUEST_SUCCESS) {
+              promise.resolve(null)
+            } else {
+              promise.reject("STOP_FAILED", "Stop SpO2 failed: $code", null)
+            }
+          }
+        },
+        object : ISpo2hDataListener {
+          override fun onSpO2HADataChange(data: Spo2hData?) {}
+        }
+      )
     }
 
     AsyncFunction("startTemperatureTest") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
         return@AsyncFunction
       }
       
-      manager.startDetectTemp(object : ITempDataListener {
-        override fun tempData(tempData: TempData?) {
-          val testState = when (tempData?.tempStatus) {
-            ETempStatus.DETECTING -> "testing"
-            ETempStatus.NOT_WEAR -> "notWear"
-            ETempStatus.DEVICE_BUSY -> "deviceBusy"
-            ETempStatus.DETECT_COMPLETE -> "over"
-            else -> "error"
+      manager.startDetectTempture(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code == Code.REQUEST_SUCCESS) {
+              promise.resolve(null)
+            } else {
+              promise.reject("START_FAILED", "Start Temp failed: $code", null)
+            }
           }
-          
-          sendEvent(TEMPERATURE_TEST_RESULT, mapOf(
-            "deviceId" to (connectedDeviceId ?: ""),
-            "result" to mapOf(
-              "state" to testState,
-              "value" to (tempData?.tempValue ?: 0f),
-              "originalValue" to (tempData?.tempOriginalValue ?: 0f),
-              "progress" to 100,
-              "enable" to true
-            )
-          ))
+        },
+        object : ITemptureDetectDataListener {
+          override fun onDataChange(data: TemptureDetectData?) {
+            if (data != null) {
+              val testState = if (data.oprate == 1) "over" else "testing"
+              
+              sendEvent(TEMPERATURE_TEST_RESULT, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "result" to mapOf(
+                  "state" to testState,
+                  "value" to data.tempture.toDouble(),
+                  "deviceState" to data.deviceState,
+                  "progress" to data.progress
+                )
+              ))
+            }
+          }
         }
-      })
-      
-      promise.resolve(null)
+      )
     }
 
     AsyncFunction("stopTemperatureTest") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance()
-      manager?.stopDetectTemp()
-      promise.resolve(null)
+      manager?.stopDetectTempture(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code == Code.REQUEST_SUCCESS) {
+              promise.resolve(null)
+            } else {
+              promise.reject("STOP_FAILED", "Stop Tempture failed: $code", null)
+            }
+          }
+        },
+        object : ITemptureDetectDataListener {
+          override fun onDataChange(data: TemptureDetectData?) {}
+        }
+      )
     }
 
     AsyncFunction("startStressTest") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
-      val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
+      if (isPressureMeasuring) {
+        promise.reject("ALREADY_MEASURING", "Pressure measurement is already in progress", null)
         return@AsyncFunction
       }
       
-      manager.startDetectPressure(object : IPressureDataListener {
-        override fun pressureData(pressureData: PressureData?) {
-          sendEvent(STRESS_DATA, mapOf(
-            "deviceId" to (connectedDeviceId ?: ""),
-            "data" to mapOf(
-              "stress" to (pressureData?.pressureValue ?: 0),
-              "timestamp" to System.currentTimeMillis()
-            )
-          ))
-        }
-      })
-      
-      promise.resolve(null)
+      isPressureMeasuring = true
+      startPressureLoop(promise)
     }
 
     AsyncFunction("stopStressTest") { promise: Promise ->
-      if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
-        return@AsyncFunction
-      }
-      
-      val manager = VPOperateManager.getInstance()
-      manager?.stopDetectPressure()
+      isPressureMeasuring = false
       promise.resolve(null)
     }
 
     AsyncFunction("startBloodGlucoseTest") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance() ?: run {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null")
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
         return@AsyncFunction
       }
       
-      manager.startDetectBloodGlucose(object : IBloodGlucoseDataListener {
-        override fun bloodGlucoseData(bloodGlucoseData: BloodGlucoseData?) {
-          sendEvent(BLOOD_GLUCOSE_DATA, mapOf(
-            "deviceId" to (connectedDeviceId ?: ""),
-            "data" to mapOf(
-              "glucose" to (bloodGlucoseData?.bloodGlucoseValue ?: 0),
-              "timestamp" to System.currentTimeMillis()
-            )
-          ))
+      manager.startBloodGlucoseDetect(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code == Code.REQUEST_SUCCESS) {
+              promise.resolve(null)
+            } else {
+              promise.reject("START_FAILED", "Start blood glucose detect failed: $code", null)
+            }
+          }
+        },
+        object : IBloodGlucoseChangeListener {
+          override fun onBloodGlucoseDetect(progress: Int, bloodGlucose: Float, level: EBloodGlucoseRiskLevel?) {
+            sendEvent(BLOOD_GLUCOSE_DATA, mapOf(
+              "deviceId" to (connectedDeviceId ?: ""),
+              "data" to mapOf(
+                "glucose" to bloodGlucose.toDouble(),
+                "progress" to progress,
+                "level" to (level?.toString() ?: "UNKNOWN"),
+                "timestamp" to System.currentTimeMillis()
+              )
+            ))
+          }
+
+          override fun onBloodGlucoseStopDetect() {
+            sendEvent(BLOOD_GLUCOSE_DATA, mapOf(
+              "deviceId" to (connectedDeviceId ?: ""),
+              "data" to mapOf(
+                "progress" to 100,
+                "status" to "STOPPED",
+                "timestamp" to System.currentTimeMillis()
+              )
+            ))
+          }
+
+          override fun onDetectError(opt: Int, status: EBloodGlucoseStatus?) {
+            sendEvent(BLOOD_GLUCOSE_DATA, mapOf(
+              "deviceId" to (connectedDeviceId ?: ""),
+              "data" to mapOf(
+                "error" to "Detect error: $status",
+                "status" to (status?.toString() ?: "UNKNOWN"),
+                "timestamp" to System.currentTimeMillis()
+              )
+            ))
+          }
+          
+          override fun onBloodGlucoseAdjustingSettingSuccess(isSuccess: Boolean, adjustingValue: Float) {}
+          override fun onBloodGlucoseAdjustingSettingFailed() {}
+          override fun onBloodGlucoseAdjustingReadSuccess(isOpen: Boolean, adjustingValue: Float) {}
+          override fun onBloodGlucoseAdjustingReadFailed() {}
+          override fun onBGMultipleAdjustingReadSuccess(isSuccess: Boolean, info1: MealInfo?, info2: MealInfo?, info3: MealInfo?) {}
+          override fun onBGMultipleAdjustingReadFailed() {}
+          override fun onBGMultipleAdjustingSettingSuccess() {}
+          override fun onBGMultipleAdjustingSettingFailed() {}
         }
-      })
-      
-      promise.resolve(null)
+      )
     }
 
     AsyncFunction("stopBloodGlucoseTest") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
-        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
       
       val manager = VPOperateManager.getInstance()
-      manager?.stopDetectBloodGlucose()
-      promise.resolve(null)
+      manager?.stopBloodGlucoseDetect(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code == Code.REQUEST_SUCCESS) {
+              promise.resolve(null)
+            } else {
+              promise.reject("STOP_FAILED", "Stop blood glucose detect failed: $code", null)
+            }
+          }
+        },
+        object : IBloodGlucoseChangeListener {
+          override fun onBloodGlucoseDetect(progress: Int, bloodGlucose: Float, level: EBloodGlucoseRiskLevel?) {}
+          override fun onBloodGlucoseStopDetect() {}
+          override fun onDetectError(opt: Int, status: EBloodGlucoseStatus?) {}
+          override fun onBloodGlucoseAdjustingSettingSuccess(isSuccess: Boolean, adjustingValue: Float) {}
+          override fun onBloodGlucoseAdjustingSettingFailed() {}
+          override fun onBloodGlucoseAdjustingReadSuccess(isOpen: Boolean, adjustingValue: Float) {}
+          override fun onBloodGlucoseAdjustingReadFailed() {}
+          override fun onBGMultipleAdjustingReadSuccess(isSuccess: Boolean, info1: MealInfo?, info2: MealInfo?, info3: MealInfo?) {}
+          override fun onBGMultipleAdjustingReadFailed() {}
+          override fun onBGMultipleAdjustingSettingSuccess() {}
+          override fun onBGMultipleAdjustingSettingFailed() {}
+        }
+      )
     }
 
     OnStartObserving {
@@ -817,54 +866,139 @@ class VeepooSDKModule : Module() {
   private fun verifyPasswordInternal(deviceId: String, password: String, is24Hour: Boolean) {
     val manager = VPOperateManager.getInstance() ?: return
     
-    manager.confirmDevicePwd(password, object : IPwdDataListener {
-      override fun pwdData(pwsData: PwdData?) {
-        val status = when (pwsData?.pwdStatus) {
-          EPwdStatus.FAIL -> "CHECK_FAIL"
-          EPwdStatus.SUCCESS -> {
+    manager.confirmDevicePwd(
+      object : IBleWriteResponse {
+        override fun onResponse(code: Int) {}
+      },
+      object : IPwdDataListener {
+        override fun onPwdDataChange(pwdData: PwdData?) {
+          val status = pwdData?.getmStatus()?.toString() ?: "UNKNOWN"
+          
+          if (status.contains("SUCCESS")) {
             sendEvent(DEVICE_READY, mapOf(
               "deviceId" to deviceId,
               "isOadModel" to false
             ))
-            "CHECK_SUCCESS"
           }
-          EPwdStatus.NOT_SET -> "NOT_SET"
-          else -> "UNKNOWN"
+          
+          sendEvent(PASSWORD_DATA, mapOf(
+            "deviceId" to deviceId,
+            "data" to mapOf(
+              "status" to status,
+              "password" to password,
+              "deviceNumber" to (pwdData?.deviceNumber?.toString() ?: ""),
+              "deviceVersion" to (pwdData?.deviceVersion ?: "")
+            )
+          ))
         }
-        
-        sendEvent(PASSWORD_DATA, mapOf(
-          "deviceId" to deviceId,
-          "data" to mapOf(
-            "status" to status,
-            "password" to password,
-            "deviceNumber" to (pwsData?.deviceNumber ?: 0),
-            "deviceVersion" to (pwsData?.deviceVersion ?: ""),
-            "deviceTestVersion" to (pwsData?.deviceTestVersion ?: ""),
-            "isHaveDrinkData" to (pwsData?.isHaveDrinkData ?: false),
-            "isOpenNightTurnWrist" to "unknown",
-            "findPhoneFunction" to "unknown",
-            "wearDetectFunction" to "unknown"
-          )
-        ))
-      }
-    })
+      },
+      object : IDeviceFuctionDataListener {
+        override fun onFunctionSupportDataChange(data: FunctionDeviceSupportData?) {}
+        override fun onDeviceFunctionPackage1Report(data: DeviceFunctionPackage1?) {}
+        override fun onDeviceFunctionPackage2Report(data: DeviceFunctionPackage2?) {}
+        override fun onDeviceFunctionPackage3Report(data: DeviceFunctionPackage3?) {}
+        override fun onDeviceFunctionPackage4Report(data: DeviceFunctionPackage4?) {}
+        override fun onDeviceFunctionPackage5Report(data: DeviceFunctionPackage5?) {}
+      },
+      object : ISocialMsgDataListener {
+        override fun onSocialMsgSupportDataChange(data: FunctionSocailMsgData?) {}
+        override fun onSocialMsgSupportDataChange2(data: FunctionSocailMsgData?) {}
+      },
+      object : ICustomSettingDataListener {
+        override fun OnSettingDataChange(data: CustomSettingData?) {}
+      },
+      password,
+      is24Hour
+    )
   }
   
-  private fun parseFunctionStatus(status: EFunctionStatus?): String {
-    return when (status) {
-      EFunctionStatus.SUPPORT -> "support"
-      EFunctionStatus.OPEN -> "open"
-      EFunctionStatus.CLOSE -> "close"
-      EFunctionStatus.UNSUPPORT -> "unsupported"
-      else -> "unknown"
-    }
+  private fun startPressureLoop(firstPromise: Promise? = null) {
+    if (!isPressureMeasuring) return
+    
+    val dataTypeList = java.util.ArrayList<DeviceManualDataType>()
+    dataTypeList.add(DeviceManualDataType.STRESS)
+    
+    val emptyList = java.util.ArrayList<DeviceManualDataType>()
+    
+    VPOperateManager.getInstance().readDeviceManualData(
+      object : IBleWriteResponse {
+        override fun onResponse(code: Int) {
+          if (code != Code.REQUEST_SUCCESS) {
+            if (firstPromise != null) {
+              isPressureMeasuring = false
+              firstPromise.reject("START_FAILED", "Start pressure measurement failed: $code", null)
+            }
+          } else {
+            firstPromise?.resolve(null)
+          }
+        }
+      },
+      0L,
+      dataTypeList,
+      emptyList,
+      object : IDeviceManualDetectDataListener {
+        override fun onPressureManualDataChange(pressureManualDataList: List<PressureManualData>?) {
+          if (isPressureMeasuring && pressureManualDataList != null && pressureManualDataList.isNotEmpty()) {
+            val latestData = pressureManualDataList.last()
+            
+            var value = 0
+            try {
+              val field = latestData.javaClass.getDeclaredField("pressureValue")
+              field.isAccessible = true
+              value = field.getInt(latestData)
+            } catch (e: Exception) {
+              try {
+                val field = latestData.javaClass.getDeclaredField("value")
+                field.isAccessible = true
+                value = field.getInt(latestData)
+              } catch (e2: Exception) { }
+            }
+            
+            sendEvent(STRESS_DATA, mapOf(
+              "deviceId" to (connectedDeviceId ?: ""),
+              "data" to mapOf(
+                "stress" to value,
+                "timestamp" to System.currentTimeMillis()
+              )
+            ))
+          }
+        }
+
+        override fun onBloodPressureDataChange(list: List<BloodPressureManualData>?) {}
+        override fun onHeartRateDataChange(list: List<HeartRateManualData>?) {}
+        override fun onBloodGlucoseDataChange(list: List<BloodGlucoseManualData>?) {}
+        override fun onBloodOxygenDataChange(list: List<BloodOxygenManualData>?) {}
+        override fun onBodyTemperatureDataChange(list: List<BodyTemperatureManualData>?) {}
+        override fun onMetoManualDataChange(list: List<MetoManualData>?) {}
+        override fun onHrvManualDataChange(list: List<HrvManualData>?) {}
+        override fun onBloodComponentManualDataChange(list: List<BloodComponentManualData>?) {}
+        override fun onMiniCheckupManualDataChange(list: List<MiniCheckupManualData>?) {}
+        override fun onEmotionManualDataChange(list: List<EmotionManualData>?) {}
+        override fun onFatigueManualDataChange(list: List<FatigueManualData>?) {}
+        override fun onSkinConductanceManualDataChange(list: List<SkinConductanceManualData>?) {}
+        override fun onReadProgress(progress: Float) {}
+        override fun onReadComplete() {
+          if (isPressureMeasuring) {
+            mainHandler.postDelayed({ startPressureLoop() }, 1000)
+          }
+        }
+        override fun onReadFail() {
+          if (isPressureMeasuring) {
+            mainHandler.postDelayed({ startPressureLoop() }, 2000)
+          }
+        }
+      }
+    )
   }
   
   private fun cleanup() {
     val manager = VPOperateManager.getInstance()
     manager?.stopScanDevice()
-    manager?.disconnectDevice()
+    manager?.disconnectWatch(object : IBleWriteResponse {
+      override fun onResponse(code: Int) {}
+    })
     isScanning = false
+    isPressureMeasuring = false
     connectedDeviceId = null
     isInitialized = false
   }

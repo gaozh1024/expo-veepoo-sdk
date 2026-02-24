@@ -8,6 +8,8 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  PermissionsAndroid,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import VeepooSDK, {
@@ -48,8 +50,56 @@ export default function HomeScreen() {
     };
   }, []);
 
+  const requestBluetoothPermissions = async (): Promise<boolean> => {
+    if (Platform.OS !== 'android') {
+      return true;
+    }
+
+    try {
+      if (Number(Platform.Version) >= 31) {
+        const granted = await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        ]);
+
+        const allGranted = 
+          granted['android.permission.BLUETOOTH_SCAN'] === PermissionsAndroid.RESULTS.GRANTED &&
+          granted['android.permission.BLUETOOTH_CONNECT'] === PermissionsAndroid.RESULTS.GRANTED &&
+          granted['android.permission.ACCESS_FINE_LOCATION'] === PermissionsAndroid.RESULTS.GRANTED;
+
+        if (!allGranted) {
+          Alert.alert('权限不足', '需要蓝牙和位置权限才能扫描和连接设备');
+          return false;
+        }
+      } else {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+        );
+
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert('权限不足', '需要位置权限才能扫描蓝牙设备');
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('请求权限失败:', error);
+      return false;
+    }
+  };
+
   const initializeSDK = async () => {
     try {
+      setStatus('正在请求权限...');
+      
+      const hasPermission = await requestBluetoothPermissions();
+      if (!hasPermission) {
+        setStatus('权限被拒绝');
+        return;
+      }
+
       setStatus('正在初始化 SDK...');
       await VeepooSDK.init();
       setIsInitialized(true);
@@ -58,12 +108,6 @@ export default function HomeScreen() {
       const isEnabled = await VeepooSDK.checkBluetoothStatus();
       if (!isEnabled) {
         setStatus('请开启蓝牙');
-        return;
-      }
-
-      const hasPermission = await VeepooSDK.requestPermissions();
-      if (!hasPermission) {
-        setStatus('请授予蓝牙权限');
         return;
       }
 
@@ -106,8 +150,10 @@ export default function HomeScreen() {
 
     VeepooSDK.on('heartRateTestResult', (payload) => {
       setHeartRateResult(payload.result);
+      setHeartRateProgress(payload.result.progress ?? 0);  // 监听进度
       if (payload.result.state === 'over') {
         setIsTesting(null);
+        setHeartRateProgress(0);  // 重置进度
       }
     });
 
@@ -189,11 +235,14 @@ export default function HomeScreen() {
 
   const readBattery = async () => {
     try {
-      await VeepooSDK.readBattery();
+      const batteryInfo = await VeepooSDK.readBattery();
+      setBattery(batteryInfo);
     } catch (error) {
       console.error('读取电量失败:', error);
     }
   };
+
+  const [heartRateProgress, setHeartRateProgress] = useState<number>(0);
 
   const startTest = async (testType: string) => {
     if (!isDeviceReady) {
@@ -202,6 +251,7 @@ export default function HomeScreen() {
     }
 
     setIsTesting(testType);
+
     switch (testType) {
       case 'heartRate':
         await VeepooSDK.startHeartRateTest();
@@ -220,6 +270,31 @@ export default function HomeScreen() {
         break;
       case 'bloodGlucose':
         await VeepooSDK.startBloodGlucoseTest();
+        break;
+    }
+  };
+
+  const stopTest = async (testType: string) => {
+    setIsTesting(null);
+
+    switch (testType) {
+      case 'heartRate':
+        await VeepooSDK.stopHeartRateTest();
+        break;
+      case 'bloodPressure':
+        await VeepooSDK.stopBloodPressureTest();
+        break;
+      case 'bloodOxygen':
+        await VeepooSDK.stopBloodOxygenTest();
+        break;
+      case 'temperature':
+        await VeepooSDK.stopTemperatureTest();
+        break;
+      case 'stress':
+        await VeepooSDK.stopStressTest();
+        break;
+      case 'bloodGlucose':
+        await VeepooSDK.stopBloodGlucoseTest();
         break;
     }
   };
@@ -260,8 +335,9 @@ export default function HomeScreen() {
 
         {battery && (
           <View style={styles.batteryInfo}>
-            <Text>电量: {battery.level}%</Text>
-            {battery.isLowBattery && <Text style={styles.lowBattery}>电量低</Text>}
+            <Text>
+              电量: {battery.level}%{battery.isLowBattery ? ' 电量低' : ''}
+            </Text>
           </View>
         )}
 
@@ -299,13 +375,19 @@ export default function HomeScreen() {
                   <Button
                     title={isTesting === 'heartRate' ? '测试中...' : '心率测试'}
                     onPress={() => startTest('heartRate')}
-                    disabled={isTesting !== null}
+                    disabled={isTesting !== null && isTesting !== 'heartRate'}
+                  />
+                  <Button
+                    title={isTesting === 'heartRate' ? '停止' : '停止'}
+                    onPress={() => stopTest('heartRate')}
+                    disabled={isTesting !== 'heartRate'}
                   />
                 </View>
                 {heartRateResult && (
                   <View style={styles.resultBox}>
                     {renderTestResult('状态', heartRateResult.state)}
                     {heartRateResult.value && renderTestResult('心率', String(heartRateResult.value), 'bpm')}
+                    {heartRateResult.progress !== undefined && renderTestResult('进度', String(heartRateResult.progress))}
                   </View>
                 )}
 
@@ -314,6 +396,11 @@ export default function HomeScreen() {
                     title={isTesting === 'bloodPressure' ? '测试中...' : '血压测试'}
                     onPress={() => startTest('bloodPressure')}
                     disabled={isTesting !== null}
+                  />
+                  <Button
+                    title={isTesting === 'bloodPressure' ? '停止' : '停止'}
+                    onPress={() => stopTest('bloodPressure')}
+                    disabled={isTesting !== 'bloodPressure'}
                   />
                 </View>
                 {bloodPressureResult && (
@@ -331,6 +418,11 @@ export default function HomeScreen() {
                     onPress={() => startTest('bloodOxygen')}
                     disabled={isTesting !== null}
                   />
+                  <Button
+                    title={isTesting === 'bloodOxygen' ? '停止' : '停止'}
+                    onPress={() => stopTest('bloodOxygen')}
+                    disabled={isTesting !== 'bloodOxygen'}
+                  />
                 </View>
                 {bloodOxygenResult && (
                   <View style={styles.resultBox}>
@@ -344,6 +436,11 @@ export default function HomeScreen() {
                     title={isTesting === 'temperature' ? '测试中...' : '体温测试'}
                     onPress={() => startTest('temperature')}
                     disabled={isTesting !== null}
+                  />
+                  <Button
+                    title={isTesting === 'temperature' ? '停止' : '停止'}
+                    onPress={() => stopTest('temperature')}
+                    disabled={isTesting !== 'temperature'}
                   />
                 </View>
                 {temperatureResult && (
@@ -359,6 +456,11 @@ export default function HomeScreen() {
                     onPress={() => startTest('stress')}
                     disabled={isTesting !== null}
                   />
+                  <Button
+                    title={isTesting === 'stress' ? '停止' : '停止'}
+                    onPress={() => stopTest('stress')}
+                    disabled={isTesting !== 'stress'}
+                  />
                 </View>
                 {stressData && (
                   <View style={styles.resultBox}>
@@ -371,6 +473,11 @@ export default function HomeScreen() {
                     title={isTesting === 'bloodGlucose' ? '测试中...' : '血糖测试'}
                     onPress={() => startTest('bloodGlucose')}
                     disabled={isTesting !== null}
+                  />
+                  <Button
+                    title={isTesting === 'bloodGlucose' ? '停止' : '停止'}
+                    onPress={() => stopTest('bloodGlucose')}
+                    disabled={isTesting !== 'bloodGlucose'}
                   />
                 </View>
                 {bloodGlucoseData && (
@@ -507,5 +614,19 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: '#666',
+  },
+  progressBarContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: 8,
+    backgroundColor: '#007AFF',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '500',
   },
 });

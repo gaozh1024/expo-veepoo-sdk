@@ -11,7 +11,6 @@ Pod::Spec.new do |s|
   s.dependency 'ExpoModulesCore'
   s.swift_versions = '5.4'
 
-  # Local frameworks from VeepooSDK/Frameworks
   s.vendored_frameworks = [
     'VeepooSDK/Frameworks/VeepooBleSDK.framework',
     'VeepooSDK/Frameworks/JL_BLEKit.framework',
@@ -22,7 +21,6 @@ Pod::Spec.new do |s|
     'VeepooSDK/Frameworks/ZipZap.framework'
   ]
 
-  # Framework dependencies
   s.frameworks = 'CoreBluetooth', 'CoreLocation', 'CoreMotion'
 
   s.subspec 'VeepooSDK' do |ss|

@@ -282,6 +282,36 @@ export type TestState = 'idle' | 'start' | 'testing' | 'notWear' | 'deviceBusy' 
 export interface HeartRateTestResult {
   state: TestState;
   value?: number;
+  progress?: number;  // 新增：进度百分比 0-100
+}
+
+export interface BloodPressureTestResult {
+  state: TestState;
+  systolic?: number;
+  diastolic?: number;
+  pulse?: number;
+  progress?: number;  // 新增：进度百分比 0-100
+}
+
+export interface BloodOxygenTestResult {
+  state: TestState;
+  value?: number;
+  rate?: number;
+  progress?: number;  // 新增：进度百分比 0-100
+}
+
+export interface TemperatureTestResult {
+  state: TestState;
+  value?: number;
+  originalTemp?: number;
+  progress?: number;  // 新增：进度百分比 0-100
+  enable?: boolean;
+}
+
+export interface StressData {
+  stress: number;
+  timestamp: number;
+  progress?: number;  // 新增：进度百分比 0-100
 }
 
 export interface BloodPressureTestResult {

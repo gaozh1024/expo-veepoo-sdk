@@ -246,6 +246,10 @@ export class VeepooSDK {
     return NativeModule.stopHeartRateTest();
   }
 
+  async stopBloodPressureTest(): Promise<void> {
+    return NativeModule.stopBloodPressureTest();
+  }
+
   async startBloodPressureTest(): Promise<void> {
     return NativeModule.startBloodPressureTest();
   }
