@@ -327,7 +327,7 @@ public class VeepooSDKModule: Module {
         hasResolved = true
 
         promise.resolve([
-          "level": isPercent ? 0 : battery,
+          "level": battery,
           "percent": isPercent ? battery : 0,
           "powerModel": 0,
           "state": chargeState.rawValue,

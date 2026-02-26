@@ -505,8 +505,9 @@ class VeepooSDKModule : Module() {
         object : IBatteryDataListener {
           override fun onDataChange(batteryData: BatteryData?) {
             if (batteryData != null) {
+              val actualLevel = if (batteryData.isPercent) batteryData.batteryPercent else batteryData.batteryLevel
               promise.resolve(mapOf(
-                "level" to batteryData.batteryLevel,
+                "level" to actualLevel,
                 "percent" to batteryData.batteryPercent,
                 "powerModel" to batteryData.powerModel,
                 "state" to batteryData.state,
