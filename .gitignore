@@ -96,14 +96,32 @@ Thumbs.db
 example/node_modules/
 example/.expo/
 example/.yalc/
+example/.expo-shared/
 example/dist/
 example/web-build/
+example/android/.gradle/
+example/android/.cxx/
+example/android/build/
+example/android/app/build/
+example/android/local.properties
+example/ios/Pods/
+example/ios/Podfile.lock
+example/ios/DerivedData/
+example/ios/build/
+example/ios/*.xcworkspace/
+example/ios/*.xcodeproj/xcuserdata
+example/ios/*.xcarchive/
 example/*.jks
 example/*.p8
 example/*.p12
 example/*.key
 example/*.mobileprovision
 example/*.orig.*
+
+# Xcode build artifacts
+*.xcarchive
+*.dSYM/
+*.ipa
 
 # iOS Framework binaries
 ios/VeepooSDK/Frameworks/
