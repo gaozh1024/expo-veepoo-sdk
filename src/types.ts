@@ -37,6 +37,7 @@ export interface ConnectOptions {
   password?: string;
   is24Hour?: boolean;
   timeSetting?: DeviceTimeSetting;
+  uuid?: string;
 }
 
 export interface DeviceTimeSetting {
@@ -173,14 +174,24 @@ export interface DeviceFunctions {
   package5?: DeviceFunctionPackage5;
 }
 
+export interface DeviceVersion {
+  hardwareVersion: string;
+  firmwareVersion: string;
+  softwareVersion: string;
+  deviceNumber: string;
+  newVersion: string;
+  description: string;
+}
+
 export type ChargeState = 'normal' | 'charging' | 'lowPressure' | 'full';
 
 export interface BatteryInfo {
   level: number;
-  percent: boolean;
+  percent: number;
   powerModel: number;
   state: number;
   bat: number;
+  isPercent: boolean;
   isLowBattery: boolean;
   chargeState?: ChargeState;
 }
@@ -232,14 +243,15 @@ export interface BloodGlucoseData {
 
 export interface SleepData {
   date: string;
+  sleepTime: string;
+  wakeTime: string;
   deepSleepDuration: number;
   lightSleepDuration: number;
-  remSleepDuration: number;
-  awakeDuration: number;
-  totalSleepDuration: number;
-  sleepEfficiency: number;
-  sleepScore?: number;
-  napDuration?: number;
+  totalSleepHours: number;
+  totalSleepMinutes: number;
+  sleepLevel: number;
+  sleepLine: string;
+  wakeUpCount: number;
 }
 
 export interface DailyHealthData {
@@ -256,10 +268,25 @@ export interface DailyHealthData {
 }
 
 export interface SportStepData {
-  step: number;
+  date: string;
+  stepCount: number;
   distance: number;
   calories: number;
-  date?: string;
+}
+
+export interface OriginData {
+  time: string;
+  heartValue: number;
+  stepValue: number;
+  calValue: number;
+  disValue: number;
+  sportValue: number;
+  systolic: number;
+  diastolic: number;
+  spo2Value: number;
+  tempValue: number;
+  stressValue: number;
+  met: number;
 }
 
 export interface HalfHourData {
@@ -416,6 +443,8 @@ export type VeepooEvent =
   | 'readOriginProgress'
   | 'readOriginComplete'
   | 'originHalfHourData'
+  | 'sleepData'
+  | 'sportStepData'
   | 'heartRateTestResult'
   | 'bloodPressureTestResult'
   | 'bloodOxygenTestResult'
@@ -436,12 +465,14 @@ export interface VeepooEventPayload {
   deviceReady: { deviceId: string; isOadModel?: boolean };
   bluetoothStateChanged: BluetoothStatus;
   deviceFunction: { deviceId: string; functions: DeviceFunctions };
-  deviceVersion: { deviceId: string; version: string; deviceNumber: string };
+  deviceVersion: { deviceId: string; version: DeviceVersion };
   passwordData: { deviceId: string; data: PasswordData };
   socialMsgData: { deviceId: string; data: SocialMsgData };
   readOriginProgress: { deviceId: string; progress: ReadOriginProgress };
   readOriginComplete: { deviceId: string; success: boolean };
   originHalfHourData: { deviceId: string; data: HalfHourData };
+  sleepData: { deviceId: string; date: string; data: SleepData[] };
+  sportStepData: { deviceId: string; date: string; data: SportStepData };
   heartRateTestResult: { deviceId: string; result: HeartRateTestResult };
   bloodPressureTestResult: { deviceId: string; result: BloodPressureTestResult };
   bloodOxygenTestResult: { deviceId: string; result: BloodOxygenTestResult };

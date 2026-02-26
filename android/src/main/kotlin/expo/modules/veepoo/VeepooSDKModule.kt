@@ -37,6 +37,11 @@ private const val BLOOD_OXYGEN_TEST_RESULT = "bloodOxygenTestResult"
 private const val TEMPERATURE_TEST_RESULT = "temperatureTestResult"
 private const val STRESS_DATA = "stressData"
 private const val BLOOD_GLUCOSE_DATA = "bloodGlucoseData"
+private const val READ_ORIGIN_PROGRESS = "readOriginProgress"
+private const val READ_ORIGIN_COMPLETE = "readOriginComplete"
+private const val ORIGIN_HALF_HOUR_DATA = "originHalfHourData"
+private const val SLEEP_DATA = "sleepData"
+private const val SPORT_STEP_DATA = "sportStepData"
 private const val ERROR = "error"
 
 class VeepooSDKModule : Module() {
@@ -50,6 +55,9 @@ class VeepooSDKModule : Module() {
   private var isInitialized = false
   private var isPressureMeasuring = false
   private val mainHandler = Handler(Looper.getMainLooper())
+  private val cachedDeviceFunctions = mutableMapOf<String, Map<String, Any?>>()
+  private var cachedDeviceVersion: String = ""
+  private var cachedDeviceNumber: String = ""
   private val context: Context
     get() = appContext.reactContext ?: appContext.currentActivity?.applicationContext!!
   
@@ -72,6 +80,9 @@ class VeepooSDKModule : Module() {
       TEMPERATURE_TEST_RESULT,
       STRESS_DATA,
       BLOOD_GLUCOSE_DATA,
+      READ_ORIGIN_PROGRESS,
+      READ_ORIGIN_COMPLETE,
+      ORIGIN_HALF_HOUR_DATA,
       ERROR
     )
 
@@ -315,6 +326,8 @@ class VeepooSDKModule : Module() {
             val status = pwdData?.getmStatus()?.toString() ?: "UNKNOWN"
             
             if (status.contains("SUCCESS")) {
+              cachedDeviceVersion = pwdData?.deviceVersion ?: ""
+              cachedDeviceNumber = pwdData?.deviceNumber?.toString() ?: ""
               sendEvent(DEVICE_READY, mapOf(
                 "deviceId" to (connectedDeviceId ?: ""),
                 "isOadModel" to false
@@ -340,12 +353,127 @@ class VeepooSDKModule : Module() {
           }
         },
         object : IDeviceFuctionDataListener {
-          override fun onFunctionSupportDataChange(data: FunctionDeviceSupportData?) {}
-          override fun onDeviceFunctionPackage1Report(data: DeviceFunctionPackage1?) {}
-          override fun onDeviceFunctionPackage2Report(data: DeviceFunctionPackage2?) {}
-          override fun onDeviceFunctionPackage3Report(data: DeviceFunctionPackage3?) {}
-          override fun onDeviceFunctionPackage4Report(data: DeviceFunctionPackage4?) {}
-          override fun onDeviceFunctionPackage5Report(data: DeviceFunctionPackage5?) {}
+          override fun onFunctionSupportDataChange(data: FunctionDeviceSupportData?) {
+            if (data != null) {
+              val functionData = mapOf(
+                "type" to "FunctionDeviceSupportData",
+                "heartDetect" to data.heartDetect.toString(),
+                "bp" to data.bp.toString(),
+                "spo2H" to data.spo2H.toString(),
+                "temperatureFunction" to data.temperatureFunction.toString(),
+                "ecg" to data.ecg.toString(),
+                "precisionSleep" to data.precisionSleep.toString(),
+                "weatherFunction" to data.weatherFunction.toString(),
+                "beathFunction" to data.beathFunction.toString(),
+                "women" to data.women.toString(),
+                "screenStyleFunction" to data.screenStyleFunction.toString(),
+                "stress" to data.stress.toString()
+              )
+              sendEvent(DEVICE_FUNCTION, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "data" to functionData
+              ))
+            }
+          }
+          
+          override fun onDeviceFunctionPackage1Report(data: DeviceFunctionPackage1?) {
+            if (data != null) {
+              val functionData = mapOf(
+                "type" to "DeviceFunctionPackage1",
+                "raw" to data.toString()
+              )
+              sendEvent(DEVICE_FUNCTION, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "data" to functionData
+              ))
+              cachedDeviceFunctions["package1"] = functionData
+            }
+          }
+          
+          override fun onDeviceFunctionPackage2Report(data: DeviceFunctionPackage2?) {
+            if (data != null) {
+              val functionData = mapOf(
+                "type" to "DeviceFunctionPackage2",
+                "raw" to data.toString()
+              )
+              sendEvent(DEVICE_FUNCTION, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "data" to functionData
+              ))
+              cachedDeviceFunctions["package2"] = functionData
+            }
+          }
+          
+          override fun onDeviceFunctionPackage3Report(data: DeviceFunctionPackage3?) {
+            if (data != null) {
+              val functionData = mapOf(
+                "type" to "DeviceFunctionPackage3",
+                "bigDataTranType" to (data.bigDataTranType),
+                "watchUiServerCount" to (data.watchUiServerCount),
+                "watchUiCustomCount" to (data.watchUiCustomCount),
+                "temperatureFunction" to (data.temperatureFunction?.toString() ?: "unsupported"),
+                "temperatureType" to (data.temperatureType),
+                "cpuType" to (data.cpuType),
+                "stressFunction" to (data.stressFunction?.toString() ?: "unsupported"),
+                "stressType" to (data.stressType),
+                "contactFunction" to (data.contactFunction?.toString() ?: "unsupported"),
+                "contactType" to (data.contactType),
+                "musicStyle" to (data.musicStyle),
+                "findDeviceByPhoneFunction" to (data.findDeviceByPhoneFunction?.toString() ?: "unsupported"),
+                "agpsFunction" to (data.agpsFunction?.toString() ?: "unsupported"),
+                "bloodGlucoseTag" to (data.bloodGlucoseTag),
+                "bloodGlucose" to (data.bloodGlucose),
+                "bloodGlucoseAdjusting" to (data.bloodGlucoseAdjusting?.toString() ?: "unsupported"),
+                "bloodGlucoseMultipleAdjusting" to (data.bloodGlucoseMultipleAdjusting?.toString() ?: "unsupported"),
+                "bloodGlucoseRiskAssessment" to (data.bloodGlucoseRiskAssessment?.toString() ?: "unsupported")
+              )
+              sendEvent(DEVICE_FUNCTION, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "data" to functionData
+              ))
+              cachedDeviceFunctions["package3"] = functionData
+            }
+          }
+          
+          override fun onDeviceFunctionPackage4Report(data: DeviceFunctionPackage4?) {
+            if (data != null) {
+              val functionData = mapOf(
+                "type" to "DeviceFunctionPackage4",
+                "bloodComponent" to (data.bloodComponent?.toString() ?: "unsupported"),
+                "bloodComponentSingleCalibration" to (data.bloodComponentSingleCalibration?.toString() ?: "unsupported"),
+                "bodyComponent" to (data.bodyComponent?.toString() ?: "unsupported"),
+                "worldClock" to (data.worldClock?.toString() ?: "unsupported"),
+                "autoMeasure" to (data.autoMeasure?.toString() ?: "unsupported"),
+                "temperatureAlarm" to (data.temperatureAlarm?.toString() ?: "unsupported"),
+                "wallet" to (data.wallet?.toString() ?: "unsupported"),
+                "postcard" to (data.postcard?.toString() ?: "unsupported"),
+                "gameSetting" to (data.gameSetting?.toString() ?: "unsupported"),
+                "aiQA" to (data.aiQA?.toString() ?: "unsupported"),
+                "aiDial" to (data.aiDial?.toString() ?: "unsupported"),
+                "distanceCalorieGoal" to (data.distanceCalorieGoal?.toString() ?: "unsupported"),
+                "videoDial" to (data.videoDial?.toString() ?: "unsupported")
+              )
+              sendEvent(DEVICE_FUNCTION, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "data" to functionData
+              ))
+              cachedDeviceFunctions["package4"] = functionData
+            }
+          }
+          
+          override fun onDeviceFunctionPackage5Report(data: DeviceFunctionPackage5?) {
+            if (data != null) {
+              val functionData = mapOf(
+                "type" to "DeviceFunctionPackage5",
+                "textImagePush" to (data.textImagePush?.toString() ?: "unsupported")
+              )
+              sendEvent(DEVICE_FUNCTION, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "data" to functionData
+              ))
+              cachedDeviceFunctions["package5"] = functionData
+            }
+          }
         },
         object : ISocialMsgDataListener {
           override fun onSocialMsgSupportDataChange(data: FunctionSocailMsgData?) {}
@@ -379,10 +507,11 @@ class VeepooSDKModule : Module() {
             if (batteryData != null) {
               promise.resolve(mapOf(
                 "level" to batteryData.batteryLevel,
-                "percent" to batteryData.isPercent,
+                "percent" to batteryData.batteryPercent,
                 "powerModel" to batteryData.powerModel,
                 "state" to batteryData.state,
                 "bat" to batteryData.bat.toInt(),
+                "isPercent" to batteryData.isPercent,
                 "isLowBattery" to batteryData.isLowBattery
               ))
             } else {
@@ -440,7 +569,9 @@ class VeepooSDKModule : Module() {
         promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
-      promise.resolve(emptyMap<String, Any>())
+      
+      Log.d(TAG, "readDeviceFunctions: returning ${cachedDeviceFunctions.size} function packages")
+      promise.resolve(cachedDeviceFunctions.toMap())
     }
 
     AsyncFunction("readSocialMsgData") { promise: Promise ->
@@ -451,12 +582,600 @@ class VeepooSDKModule : Module() {
       promise.resolve(emptyMap<String, Any>())
     }
 
+    AsyncFunction("readDeviceVersion") { promise: Promise ->
+      if (!isInitialized || connectedDeviceId == null) {
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
+        return@AsyncFunction
+      }
+      
+      Log.d(TAG, "readDeviceVersion: reading device version info")
+      
+      val result = mapOf(
+        "hardwareVersion" to cachedDeviceVersion,
+        "firmwareVersion" to "",
+        "softwareVersion" to "",
+        "deviceNumber" to cachedDeviceNumber,
+        "newVersion" to "",
+        "description" to ""
+      )
+      
+      sendEvent(DEVICE_VERSION, mapOf(
+        "deviceId" to (connectedDeviceId ?: ""),
+        "version" to result
+      ))
+      
+      Log.d(TAG, "readDeviceVersion: $result")
+      promise.resolve(result)
+    }
+
     AsyncFunction("startReadOriginData") { promise: Promise ->
       if (!isInitialized || connectedDeviceId == null) {
         promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
         return@AsyncFunction
       }
-      promise.resolve(null)
+      
+      val manager = VPOperateManager.getInstance() ?: run {
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
+        return@AsyncFunction
+      }
+      
+      manager.readOriginData(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code == Code.REQUEST_SUCCESS) {
+              Log.d(TAG, "startReadOriginData: command sent successfully")
+            } else {
+              Log.e(TAG, "startReadOriginData: command failed with code $code")
+            }
+          }
+        },
+        object : IOriginData3Listener {
+          override fun onOriginFiveMinuteListDataChange(dataList3: List<OriginData3>?) {
+            if (dataList3 != null && dataList3.isNotEmpty()) {
+              Log.d(TAG, "onOriginFiveMinuteListDataChange: ${dataList3.size} records")
+            }
+          }
+          
+          override fun onOriginHalfHourDataChange(data: OriginHalfHourData?) {
+            try {
+              if (data != null) {
+                Log.d(TAG, "onOriginHalfHourDataChange: date=${data.date}, allStep=${data.allStep}")
+                
+                val sportList = mutableListOf<Map<String, Any>>()
+                data.halfHourSportDatas?.forEach { sport ->
+                  try {
+                    val time = sport.time
+                    if (time != null) {
+                      sportList.add(mapOf(
+                        "time" to String.format("%02d:%02d", time.hour, time.minute),
+                        "step" to sport.stepValue,
+                        "cal" to sport.calValue,
+                        "dis" to sport.disValue
+                      ))
+                    }
+                  } catch (e: Exception) {
+                    Log.e(TAG, "Error processing sport data", e)
+                  }
+                }
+                
+                val rateList = mutableListOf<Map<String, Any>>()
+                data.halfHourRateDatas?.forEach { rate ->
+                  try {
+                    val time = rate.time
+                    if (time != null) {
+                      rateList.add(mapOf(
+                        "time" to String.format("%02d:%02d", time.hour, time.minute),
+                        "heartValue" to rate.rateValue
+                      ))
+                    }
+                  } catch (e: Exception) {
+                    Log.e(TAG, "Error processing rate data", e)
+                  }
+                }
+                
+                val bpList = mutableListOf<Map<String, Any>>()
+                data.halfHourBps?.forEach { bp ->
+                  try {
+                    val time = bp.time
+                    if (time != null) {
+                      bpList.add(mapOf(
+                        "time" to String.format("%02d:%02d", time.hour, time.minute),
+                        "systolic" to bp.highValue,
+                        "diastolic" to bp.lowValue
+                      ))
+                    }
+                  } catch (e: Exception) {
+                    Log.e(TAG, "Error processing BP data", e)
+                  }
+                }
+                
+                val dateStr = data.date ?: ""
+                val formattedDate = if (dateStr.length >= 10) dateStr.substring(0, 10) else dateStr
+                
+                val calSum = sportList.mapNotNull { (it["cal"] as? Number)?.toDouble() }.sum()
+                val disSum = sportList.mapNotNull { (it["dis"] as? Number)?.toDouble() }.sum()
+                val stepSum = sportList.mapNotNull { (it["step"] as? Number)?.toInt() }.sum()
+                
+                sendEvent(ORIGIN_HALF_HOUR_DATA, mapOf(
+                  "deviceId" to (connectedDeviceId ?: ""),
+                  "data" to mapOf(
+                    "time" to formattedDate,
+                    "sportValue" to data.allStep,
+                    "calValue" to calSum,
+                    "disValue" to disSum,
+                    "stepValue" to stepSum,
+                    "heartValue" to (rateList.firstOrNull()?.get("heartValue") ?: 0),
+                    "diastolic" to (bpList.firstOrNull()?.get("diastolic") ?: 0),
+                    "systolic" to (bpList.firstOrNull()?.get("systolic") ?: 0),
+                    "spo2Value" to 0,
+                    "tempValue" to 0.0,
+                    "stressValue" to 0
+                  )
+                ))
+              }
+            } catch (e: Exception) {
+              Log.e(TAG, "Error in onOriginHalfHourDataChange", e)
+              sendEvent(ERROR, mapOf(
+                "code" to "ORIGIN_DATA_ERROR",
+                "message" to (e.message ?: "Unknown error processing origin data"),
+                "deviceId" to (connectedDeviceId ?: "")
+              ))
+            }
+          }
+          
+          override fun onOriginHRVOriginListDataChange(dataList: List<HRVOriginData>?) {
+            if (dataList != null && dataList.isNotEmpty()) {
+              Log.d(TAG, "onOriginHRVOriginListDataChange: ${dataList.size} records")
+            }
+          }
+          
+          override fun onOriginSpo2OriginListDataChange(dataList: List<Spo2hOriginData>?) {
+            if (dataList != null && dataList.isNotEmpty()) {
+              Log.d(TAG, "onOriginSpo2OriginListDataChange: ${dataList.size} records")
+            }
+          }
+          
+          override fun onReadOriginProgressDetail(day: Int, date: String?, allPack: Int, currentPack: Int) {
+            try {
+              val progress = if (allPack > 0) currentPack.toDouble() / allPack.toDouble() else 0.0
+              Log.d(TAG, "onReadOriginProgressDetail: day=$day, progress=$progress")
+              
+              sendEvent(READ_ORIGIN_PROGRESS, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "progress" to mapOf(
+                  "readState" to "reading",
+                  "totalDays" to 1,
+                  "currentDay" to 1,
+                  "progress" to progress
+                )
+              ))
+            } catch (e: Exception) {
+              Log.e(TAG, "Error in onReadOriginProgressDetail", e)
+            }
+          }
+          
+          override fun onReadOriginProgress(progress: Float) {
+            try {
+              var p = progress.toDouble()
+              if (p > 1.0) p /= 100.0
+              
+              Log.d(TAG, "onReadOriginProgress: $p")
+              
+              sendEvent(READ_ORIGIN_PROGRESS, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "progress" to mapOf(
+                  "readState" to "reading",
+                  "totalDays" to 1,
+                  "currentDay" to 1,
+                  "progress" to p
+                )
+              ))
+            } catch (e: Exception) {
+              Log.e(TAG, "Error in onReadOriginProgress", e)
+            }
+          }
+          
+          override fun onReadOriginComplete() {
+            try {
+              Log.d(TAG, "onReadOriginComplete")
+              
+              sendEvent(READ_ORIGIN_COMPLETE, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "success" to true
+              ))
+              
+              promise.resolve(null)
+            } catch (e: Exception) {
+              Log.e(TAG, "Error in onReadOriginComplete", e)
+              sendEvent(READ_ORIGIN_COMPLETE, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "success" to false
+              ))
+              promise.resolve(null)
+            }
+          }
+        },
+        0
+      )
+    }
+
+    AsyncFunction("readDeviceAllData") { promise: Promise ->
+      if (!isInitialized || connectedDeviceId == null) {
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
+        return@AsyncFunction
+      }
+      
+      val manager = VPOperateManager.getInstance() ?: run {
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
+        return@AsyncFunction
+      }
+      
+      Log.d(TAG, "readDeviceAllData: starting to read all device data")
+      
+      sendEvent(READ_ORIGIN_PROGRESS, mapOf(
+        "deviceId" to (connectedDeviceId ?: ""),
+        "progress" to mapOf(
+          "readState" to "start",
+          "totalDays" to 1,
+          "currentDay" to 1,
+          "progress" to 0.0
+        )
+      ))
+      
+      manager.readOriginData(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code != Code.REQUEST_SUCCESS) {
+              Log.e(TAG, "readDeviceAllData: command failed with code $code")
+            }
+          }
+        },
+        object : IOriginData3Listener {
+          override fun onOriginFiveMinuteListDataChange(dataList3: List<OriginData3>?) {
+            if (dataList3 != null && dataList3.isNotEmpty()) {
+              Log.d(TAG, "readDeviceAllData: onOriginFiveMinuteListDataChange: ${dataList3.size} records")
+            }
+          }
+          
+          override fun onOriginHalfHourDataChange(data: OriginHalfHourData?) {
+            if (data != null) {
+              Log.d(TAG, "readDeviceAllData: onOriginHalfHourDataChange: date=${data.date}")
+              
+              val sportList = mutableListOf<Map<String, Any>>()
+              data.halfHourSportDatas?.forEach { sport ->
+                val time = sport.time
+                if (time != null) {
+                  sportList.add(mapOf(
+                    "time" to String.format("%02d:%02d", time.hour, time.minute),
+                    "step" to sport.stepValue,
+                    "cal" to sport.calValue,
+                    "dis" to sport.disValue
+                  ))
+                }
+              }
+              
+              val rateList = mutableListOf<Map<String, Any>>()
+              data.halfHourRateDatas?.forEach { rate ->
+                val time = rate.time
+                if (time != null) {
+                  rateList.add(mapOf(
+                    "time" to String.format("%02d:%02d", time.hour, time.minute),
+                    "heartValue" to rate.rateValue
+                  ))
+                }
+              }
+              
+              val dateStr = data.date ?: ""
+              val formattedDate = if (dateStr.length >= 10) dateStr.substring(0, 10) else dateStr
+              
+              val calSum = sportList.mapNotNull { (it["cal"] as? Number)?.toDouble() }.sum()
+              val disSum = sportList.mapNotNull { (it["dis"] as? Number)?.toDouble() }.sum()
+              val stepSum = sportList.mapNotNull { (it["step"] as? Number)?.toInt() }.sum()
+              
+              sendEvent(ORIGIN_HALF_HOUR_DATA, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "data" to mapOf(
+                  "time" to formattedDate,
+                  "sportValue" to data.allStep,
+                  "calValue" to calSum,
+                  "disValue" to disSum,
+                  "stepValue" to stepSum,
+                  "heartValue" to (rateList.firstOrNull()?.get("heartValue") ?: 0)
+                )
+              ))
+            }
+          }
+          
+          override fun onOriginHRVOriginListDataChange(dataList: List<HRVOriginData>?) {}
+          
+          override fun onOriginSpo2OriginListDataChange(dataList: List<Spo2hOriginData>?) {}
+          
+          override fun onReadOriginProgressDetail(day: Int, date: String?, allPack: Int, currentPack: Int) {
+            val progress = if (allPack > 0) currentPack.toDouble() / allPack.toDouble() else 0.0
+            Log.d(TAG, "readDeviceAllData: onReadOriginProgressDetail: day=$day, progress=$progress")
+            
+            sendEvent(READ_ORIGIN_PROGRESS, mapOf(
+              "deviceId" to (connectedDeviceId ?: ""),
+              "progress" to mapOf(
+                "readState" to "reading",
+                "totalDays" to 1,
+                "currentDay" to day,
+                "progress" to progress
+              )
+            ))
+          }
+          
+          override fun onReadOriginProgress(progress: Float) {
+            var p = progress.toDouble()
+            if (p > 1.0) p /= 100.0
+            
+            Log.d(TAG, "readDeviceAllData: onReadOriginProgress: $p")
+            
+            sendEvent(READ_ORIGIN_PROGRESS, mapOf(
+              "deviceId" to (connectedDeviceId ?: ""),
+              "progress" to mapOf(
+                "readState" to "reading",
+                "totalDays" to 1,
+                "currentDay" to 1,
+                "progress" to p
+              )
+            ))
+          }
+          
+          override fun onReadOriginComplete() {
+            Log.d(TAG, "readDeviceAllData: onReadOriginComplete")
+            
+            sendEvent(READ_ORIGIN_PROGRESS, mapOf(
+              "deviceId" to (connectedDeviceId ?: ""),
+              "progress" to mapOf(
+                "readState" to "complete",
+                "totalDays" to 1,
+                "currentDay" to 1,
+                "progress" to 1.0
+              )
+            ))
+            
+            sendEvent(READ_ORIGIN_COMPLETE, mapOf(
+              "deviceId" to (connectedDeviceId ?: ""),
+              "success" to true
+            ))
+            
+            promise.resolve(true)
+          }
+        },
+        0
+      )
+    }
+
+    AsyncFunction("readSleepData") { date: String?, promise: Promise ->
+      if (!isInitialized || connectedDeviceId == null) {
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
+        return@AsyncFunction
+      }
+      
+      val manager = VPOperateManager.getInstance() ?: run {
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
+        return@AsyncFunction
+      }
+      
+      Log.d(TAG, "readSleepData: reading sleep data")
+      
+      manager.readSleepData(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code != Code.REQUEST_SUCCESS) {
+              Log.e(TAG, "readSleepData: command failed with code $code")
+            }
+          }
+        },
+        object : ISleepDataListener {
+          override fun onSleepDataChange(day: String?, sleepData: SleepData?) {
+            if (sleepData != null) {
+              Log.d(TAG, "onSleepDataChange: day=$day, allSleepTime=${sleepData.allSleepTime}")
+              
+              var sleepDownStr = ""
+              if (sleepData.sleepDown != null) {
+                sleepDownStr = String.format("%04d-%02d-%02d %02d:%02d:%02d",
+                  sleepData.sleepDown.year,
+                  sleepData.sleepDown.month,
+                  sleepData.sleepDown.day,
+                  sleepData.sleepDown.hour,
+                  sleepData.sleepDown.minute,
+                  sleepData.sleepDown.second
+                )
+              }
+              
+              var sleepUpStr = ""
+              if (sleepData.sleepUp != null) {
+                sleepUpStr = String.format("%04d-%02d-%02d %02d:%02d:%02d",
+                  sleepData.sleepUp.year,
+                  sleepData.sleepUp.month,
+                  sleepData.sleepUp.day,
+                  sleepData.sleepUp.hour,
+                  sleepData.sleepUp.minute,
+                  sleepData.sleepUp.second
+                )
+              }
+              
+              val result = mapOf(
+                "date" to (sleepData.date ?: ""),
+                "sleepTime" to sleepDownStr,
+                "wakeTime" to sleepUpStr,
+                "deepSleepDuration" to (sleepData.deepSleepTime / 60.0),
+                "lightSleepDuration" to (sleepData.lowSleepTime / 60.0),
+                "totalSleepHours" to (sleepData.allSleepTime / 60),
+                "totalSleepMinutes" to (sleepData.allSleepTime % 60),
+                "sleepLevel" to sleepData.sleepQulity,
+                "sleepLine" to (sleepData.sleepLine ?: ""),
+                "wakeUpCount" to sleepData.wakeCount
+              )
+              
+              sendEvent(SLEEP_DATA, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "date" to (sleepData.date ?: ""),
+                "data" to listOf(result)
+              ))
+              
+              promise.resolve(listOf(result))
+            } else {
+              Log.d(TAG, "onSleepDataChange: sleepData is null")
+              sendEvent(SLEEP_DATA, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "date" to (date ?: ""),
+                "data" to emptyList<Any>()
+              ))
+              promise.resolve(emptyList<Any>())
+            }
+          }
+          
+          override fun onSleepProgress(progress: Float) {
+            Log.d(TAG, "onSleepProgress: $progress")
+          }
+          
+          override fun onSleepProgressDetail(day: String?, progress: Int) {
+            Log.d(TAG, "onSleepProgressDetail: day=$day, progress=$progress")
+          }
+          
+          override fun onReadSleepComplete() {
+            Log.d(TAG, "onReadSleepComplete")
+          }
+        },
+        0
+      )
+    }
+
+    AsyncFunction("readSportStepData") { date: String?, promise: Promise ->
+      if (!isInitialized || connectedDeviceId == null) {
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
+        return@AsyncFunction
+      }
+      
+      val manager = VPOperateManager.getInstance() ?: run {
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
+        return@AsyncFunction
+      }
+      
+      Log.d(TAG, "readSportStepData: reading sport step data")
+      
+      manager.readSportStep(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code != Code.REQUEST_SUCCESS) {
+              Log.e(TAG, "readSportStepData: command failed with code $code")
+            }
+          }
+        },
+        object : ISportDataListener {
+          override fun onSportDataChange(sportData: SportData?) {
+            if (sportData != null) {
+              Log.d(TAG, "onSportDataChange: step=${sportData.step}, dis=${sportData.dis}, kcal=${sportData.kcal}")
+              
+              val result = mapOf(
+                "date" to (date ?: ""),
+                "stepCount" to sportData.step,
+                "distance" to sportData.dis,
+                "calories" to sportData.kcal
+              )
+              
+              sendEvent(SPORT_STEP_DATA, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "date" to (date ?: ""),
+                "data" to result
+              ))
+              
+              promise.resolve(result)
+            } else {
+              Log.d(TAG, "onSportDataChange: sportData is null")
+              val emptyResult = mapOf(
+                "date" to (date ?: ""),
+                "stepCount" to 0,
+                "distance" to 0.0,
+                "calories" to 0.0
+              )
+              sendEvent(SPORT_STEP_DATA, mapOf(
+                "deviceId" to (connectedDeviceId ?: ""),
+                "date" to (date ?: ""),
+                "data" to emptyResult
+              ))
+              promise.resolve(emptyResult)
+            }
+          }
+        }
+      )
+    }
+
+    AsyncFunction("readOriginData") { dayOffset: Int, promise: Promise ->
+      if (!isInitialized || connectedDeviceId == null) {
+        promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
+        return@AsyncFunction
+      }
+      
+      val manager = VPOperateManager.getInstance() ?: run {
+        promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
+        return@AsyncFunction
+      }
+      
+      Log.d(TAG, "readOriginData: dayOffset=$dayOffset")
+      
+      manager.readOriginData(
+        object : IBleWriteResponse {
+          override fun onResponse(code: Int) {
+            if (code != Code.REQUEST_SUCCESS) {
+              Log.e(TAG, "readOriginData: command failed with code $code")
+            }
+          }
+        },
+        object : IOriginData3Listener {
+          private val dataList = mutableListOf<Map<String, Any>>()
+          
+          override fun onOriginFiveMinuteListDataChange(dataList3: List<OriginData3>?) {
+            if (dataList3 != null && dataList3.isNotEmpty()) {
+              Log.d(TAG, "onOriginFiveMinuteListDataChange: ${dataList3.size} records")
+              
+              for (data in dataList3) {
+                val timeData = data.getmTime()
+                if (timeData != null) {
+                  val timeStr = String.format("%02d:%02d", timeData.hour, timeData.minute)
+                  
+                  val item = mapOf(
+                    "time" to timeStr,
+                    "heartValue" to data.rateValue,
+                    "stepValue" to data.stepValue,
+                    "calValue" to data.calValue,
+                    "disValue" to data.disValue,
+                    "sportValue" to data.sportValue,
+                    "systolic" to data.highValue,
+                    "diastolic" to data.lowValue,
+                    "spo2Value" to 0,
+                    "tempValue" to data.temperature,
+                    "stressValue" to data.pressure,
+                    "met" to data.met.toDouble()
+                  )
+                  
+                  dataList.add(item)
+                }
+              }
+            }
+          }
+          
+          override fun onOriginHalfHourDataChange(data: OriginHalfHourData?) {}
+          
+          override fun onOriginHRVOriginListDataChange(dataList: List<HRVOriginData>?) {}
+          
+          override fun onOriginSpo2OriginListDataChange(dataList: List<Spo2hOriginData>?) {}
+          
+          override fun onReadOriginProgressDetail(day: Int, date: String?, allPack: Int, currentPack: Int) {}
+          
+          override fun onReadOriginProgress(progress: Float) {}
+          
+          override fun onReadOriginComplete() {
+            Log.d(TAG, "readOriginData complete: ${dataList.size} records")
+            val sortedList = dataList.sortedBy { it["time"] as? String ?: "" }
+            promise.resolve(sortedList)
+          }
+        },
+        dayOffset
+      )
     }
 
     AsyncFunction("readAutoMeasureSetting") { promise: Promise ->

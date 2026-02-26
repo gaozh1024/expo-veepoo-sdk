@@ -6,11 +6,10 @@ import type {
   ConnectionStatus,
   ScanOptions,
   ConnectOptions,
-  VeepooEvent,
-  VeepooEventPayload,
   BatteryInfo,
   PersonalInfo,
   DeviceFunctions,
+  DeviceVersion,
   PasswordData,
   SocialMsgData,
   ReadOriginProgress,
@@ -23,7 +22,12 @@ import type {
   StressData,
   BloodGlucoseData,
   HalfHourData,
+  SleepData,
+  SportStepData,
   VeepooError,
+  OriginData,
+  VeepooEvent,
+  VeepooEventPayload,
 } from './types.js';
 import type { NativeVeepooSDKInterface } from './NativeVeepooSDK.js';
 
@@ -71,6 +75,8 @@ export class VeepooSDK {
       'readOriginProgress',
       'readOriginComplete',
       'originHalfHourData',
+      'sleepData',
+      'sportStepData',
       'heartRateTestResult',
       'bloodPressureTestResult',
       'bloodOxygenTestResult',
@@ -222,8 +228,28 @@ export class VeepooSDK {
     return NativeModule.readSocialMsgData();
   }
 
+  async readDeviceVersion(): Promise<DeviceVersion> {
+    return NativeModule.readDeviceVersion();
+  }
+
   async startReadOriginData(): Promise<void> {
     return NativeModule.startReadOriginData();
+  }
+
+  async readDeviceAllData(): Promise<boolean> {
+    return NativeModule.readDeviceAllData();
+  }
+
+  async readSleepData(date?: string): Promise<SleepData[]> {
+    return NativeModule.readSleepData(date);
+  }
+
+  async readSportStepData(date?: string): Promise<SportStepData> {
+    return NativeModule.readSportStepData(date);
+  }
+
+  async readOriginData(dayOffset: number = 0): Promise<OriginData[]> {
+    return NativeModule.readOriginData(dayOffset);
   }
 
   async readAutoMeasureSetting(): Promise<AutoMeasureSetting[]> {
@@ -244,10 +270,6 @@ export class VeepooSDK {
 
   async stopHeartRateTest(): Promise<void> {
     return NativeModule.stopHeartRateTest();
-  }
-
-  async stopBloodPressureTest(): Promise<void> {
-    return NativeModule.stopBloodPressureTest();
   }
 
   async startBloodPressureTest(): Promise<void> {

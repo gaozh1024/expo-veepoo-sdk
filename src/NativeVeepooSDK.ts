@@ -8,6 +8,7 @@ import type {
   ScanOptions,
   ConnectOptions,
   DeviceFunctions,
+  DeviceVersion,
   PasswordData,
   SocialMsgData,
   ReadOriginProgress,
@@ -17,6 +18,9 @@ import type {
   BloodPressureTestResult,
   BloodOxygenTestResult,
   TemperatureTestResult,
+  SleepData,
+  SportStepData,
+  OriginData,
 } from './types.js';
 
 const LINKING_ERROR =
@@ -26,36 +30,41 @@ const LINKING_ERROR =
 
 export interface NativeVeepooSDKInterface {
   init(): Promise<void>;
-  isBluetoothEnabled(): Promise<boolean>;
-  requestPermissions(): Promise<boolean>;
-  startScan(options?: ScanOptions): Promise<void>;
-  stopScan(): Promise<void>;
-  connect(deviceId: string, options?: ConnectOptions): Promise<void>;
-  disconnect(deviceId: string): Promise<void>;
-  getConnectionStatus(deviceId: string): Promise<ConnectionStatus>;
-  verifyPassword(password: string, is24Hour: boolean): Promise<PasswordData>;
-  readBattery(): Promise<BatteryInfo>;
-  syncPersonalInfo(info: PersonalInfo): Promise<boolean>;
-  readDeviceFunctions(): Promise<DeviceFunctions>;
-  readSocialMsgData(): Promise<SocialMsgData>;
-  startReadOriginData(): Promise<void>;
-  readAutoMeasureSetting(): Promise<AutoMeasureSetting[]>;
-  modifyAutoMeasureSetting(setting: AutoMeasureSetting): Promise<void>;
-  setLanguage(language: Language): Promise<boolean>;
-  startHeartRateTest(): Promise<void>;
-  stopHeartRateTest(): Promise<void>;
-  startBloodPressureTest(): Promise<void>;
-  stopBloodPressureTest(): Promise<void>;
-  startBloodOxygenTest(): Promise<void>;
-  stopBloodOxygenTest(): Promise<void>;
-  startTemperatureTest(): Promise<void>;
-  stopTemperatureTest(): Promise<void>;
-  startStressTest(): Promise<void>;
-  stopStressTest(): Promise<void>;
-  startBloodGlucoseTest(): Promise<void>;
-  stopBloodGlucoseTest(): Promise<void>;
-  addListener(event: VeepooEvent, listener: (payload: unknown) => void): EventSubscription;
-  removeListeners(count: number): void;
+    isBluetoothEnabled(): Promise<boolean>;
+    requestPermissions(): Promise<boolean>;
+    startScan(options?: ScanOptions): Promise<void>;
+    stopScan(): Promise<void>;
+    connect(deviceId: string, options?: ConnectOptions): Promise<void>;
+    disconnect(deviceId: string): Promise<void>;
+    getConnectionStatus(deviceId: string): Promise<ConnectionStatus>;
+    verifyPassword(password: string, is24Hour: boolean): Promise<PasswordData>;
+    readBattery(): Promise<BatteryInfo>;
+    syncPersonalInfo(info: PersonalInfo): Promise<boolean>;
+    readDeviceFunctions(): Promise<DeviceFunctions>;
+    readSocialMsgData(): Promise<SocialMsgData>;
+    readDeviceVersion(): Promise<DeviceVersion>;
+    startReadOriginData(): Promise<void>;
+    readDeviceAllData(): Promise<boolean>;
+    readSleepData(date?: string): Promise<SleepData[]>;
+    readSportStepData(date?: string): Promise<SportStepData>;
+    readOriginData(dayOffset?: number): Promise<OriginData[]>;
+    readAutoMeasureSetting(): Promise<AutoMeasureSetting[]>;
+    modifyAutoMeasureSetting(setting: AutoMeasureSetting): Promise<void>;
+    setLanguage(language: Language): Promise<boolean>;
+    startHeartRateTest(): Promise<void>;
+    stopHeartRateTest(): Promise<void>;
+    startBloodPressureTest(): Promise<void>;
+    stopBloodPressureTest(): Promise<void>;
+    startBloodOxygenTest(): Promise<void>;
+    stopBloodOxygenTest(): Promise<void>;
+    startTemperatureTest(): Promise<void>;
+    stopTemperatureTest(): Promise<void>;
+    startStressTest(): Promise<void>;
+    stopStressTest(): Promise<void>;
+    startBloodGlucoseTest(): Promise<void>;
+    stopBloodGlucoseTest(): Promise<void>;
+    addListener(event: VeepooEvent, listener: (payload: unknown) => void): EventSubscription;
+    removeListeners(count: number): void;
 }
 
 let NativeModule: NativeVeepooSDKInterface;
@@ -131,8 +140,28 @@ class VeepooSDKNativeWrapper implements NativeVeepooSDKInterface {
     return this.native.readSocialMsgData();
   }
 
+  async readDeviceVersion(): Promise<DeviceVersion> {
+    return this.native.readDeviceVersion();
+  }
+
   async startReadOriginData(): Promise<void> {
     return this.native.startReadOriginData();
+  }
+
+  async readDeviceAllData(): Promise<boolean> {
+    return this.native.readDeviceAllData();
+  }
+
+  async readSleepData(date?: string): Promise<SleepData[]> {
+    return this.native.readSleepData(date);
+  }
+
+  async readSportStepData(date?: string): Promise<SportStepData> {
+    return this.native.readSportStepData(date);
+  }
+
+  async readOriginData(dayOffset: number = 0): Promise<OriginData[]> {
+    return this.native.readOriginData(dayOffset);
   }
 
   async readAutoMeasureSetting(): Promise<AutoMeasureSetting[]> {

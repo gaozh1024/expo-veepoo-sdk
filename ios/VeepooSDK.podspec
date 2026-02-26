@@ -9,6 +9,8 @@ Pod::Spec.new do |s|
   s.source         = { git: 'https://github.com/expo/expo.git' }
   s.static_framework = true
   s.dependency 'ExpoModulesCore'
+  s.dependency 'FMDB'
+  s.dependency 'MJExtension'
   s.swift_versions = '5.4'
 
   s.vendored_frameworks = [
@@ -21,7 +23,7 @@ Pod::Spec.new do |s|
     'VeepooSDK/Frameworks/ZipZap.framework'
   ]
 
-  s.frameworks = 'CoreBluetooth', 'CoreLocation', 'CoreMotion'
+  s.frameworks = 'CoreBluetooth', 'CoreLocation', 'CoreMotion', 'CoreAudio', 'AVFoundation'
 
   s.subspec 'VeepooSDK' do |ss|
     ss.source_files = 'VeepooSDK/*.{swift,m,h}'
