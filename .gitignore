@@ -123,13 +123,6 @@ example/*.orig.*
 *.dSYM/
 *.ipa
 
-# iOS Framework binaries
-ios/VeepooSDK/Frameworks/
-ios/Frameworks/
-
-# Android libraries
-android/libs/
-
 # Package manager files
 package-lock.json
 yarn.lock

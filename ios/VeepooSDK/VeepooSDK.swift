@@ -579,11 +579,11 @@ public class VeepooSDKModule: Module {
         if let sleepItems = VPDataBaseOperation.veepooSDKGetAccurateSleepData(withDate: queryDate, andTableID: deviceAddress) {
           print("🔵 [VeepooSDK] readSleepData: accurate sleep items=\(sleepItems.count)")
           for item in sleepItems {
-            let deepMinutes = Int(Double(item.deepDuration) ?? "0") ?? 0
-            let lightMinutes = Int(Double(item.lightDuration) ?? "0") ?? 0
-            let totalMinutes = Int(Double(item.sleepDuration) ?? "0") ?? 0
-            let quality = Int(Double(item.sleepQuality) ?? "0") ?? 0
-            let wakeCount = Int(Double(item.insomniaTimes) ?? "0") ?? 0
+            let deepMinutes = Int(Double(item.deepDuration ?? "0") ?? 0)
+            let lightMinutes = Int(Double(item.lightDuration ?? "0") ?? 0)
+            let totalMinutes = Int(Double(item.sleepDuration ?? "0") ?? 0)
+            let quality = Int(Double(item.sleepQuality ?? "0") ?? 0)
+            let wakeCount = Int(Double(item.insomniaTimes ?? "0") ?? 0)
             
             let dict: [String: Any] = [
               "date": String(item.wakeTime.prefix(10)),
