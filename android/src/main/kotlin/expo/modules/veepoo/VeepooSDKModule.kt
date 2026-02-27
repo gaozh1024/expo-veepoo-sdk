@@ -968,11 +968,39 @@ class VeepooSDKModule : Module() {
       
       Log.d(TAG, "readSleepData: reading sleep data")
       
+      val isPromiseResolved = java.util.concurrent.atomic.AtomicBoolean(false)
+      
+      fun createEmptySleepResult(): Map<String, Any> = mapOf(
+        "date" to (date ?: ""),
+        "items" to emptyList<Any>(),
+        "summary" to mapOf(
+          "totalDeepSleepMinutes" to 0,
+          "totalLightSleepMinutes" to 0,
+          "totalSleepMinutes" to 0,
+          "averageSleepQuality" to 0,
+          "totalWakeUpCount" to 0
+        )
+      )
+      
+      fun resolveSleepOnce(result: Map<String, Any>) {
+        if (isPromiseResolved.compareAndSet(false, true)) {
+          mainHandler.removeCallbacksAndMessages(null)
+          promise.resolve(result)
+        }
+      }
+      
+      val timeoutRunnable = Runnable {
+        Log.w(TAG, "readSleepData: timeout, returning empty result")
+        resolveSleepOnce(createEmptySleepResult())
+      }
+      mainHandler.postDelayed(timeoutRunnable, 15000)
+      
       manager.readSleepData(
         object : IBleWriteResponse {
           override fun onResponse(code: Int) {
             if (code != Code.REQUEST_SUCCESS) {
-              Log.e(TAG, "readSleepData: command failed with code $code")
+              Log.e(TAG, "readSleepData: command failed with code $code, returning empty result")
+              resolveSleepOnce(createEmptySleepResult())
             }
           }
         },
@@ -1045,26 +1073,10 @@ class VeepooSDKModule : Module() {
                 "data" to result
               ))
               
-              promise.resolve(result)
+              resolveSleepOnce(result)
             } else {
               Log.d(TAG, "onSleepDataChange: sleepData is null")
-              val emptyResult = mapOf(
-                "date" to (date ?: ""),
-                "items" to emptyList<Any>(),
-                "summary" to mapOf(
-                  "totalDeepSleepMinutes" to 0,
-                  "totalLightSleepMinutes" to 0,
-                  "totalSleepMinutes" to 0,
-                  "averageSleepQuality" to 0,
-                  "totalWakeUpCount" to 0
-                )
-              )
-              sendEvent(SLEEP_DATA, mapOf(
-                "deviceId" to (connectedDeviceId ?: ""),
-                "date" to (date ?: ""),
-                "data" to emptyResult
-              ))
-              promise.resolve(emptyResult)
+              resolveSleepOnce(createEmptySleepResult())
             }
           }
           
@@ -1097,11 +1109,34 @@ class VeepooSDKModule : Module() {
       
       Log.d(TAG, "readSportStepData: reading sport step data")
       
+      val isPromiseResolved = java.util.concurrent.atomic.AtomicBoolean(false)
+      
+      fun createEmptySportResult(): Map<String, Any> = mapOf(
+        "date" to (date ?: ""),
+        "stepCount" to 0,
+        "distance" to 0.0,
+        "calories" to 0.0
+      )
+      
+      fun resolveSportOnce(result: Map<String, Any>) {
+        if (isPromiseResolved.compareAndSet(false, true)) {
+          mainHandler.removeCallbacksAndMessages(null)
+          promise.resolve(result)
+        }
+      }
+      
+      val timeoutRunnable = Runnable {
+        Log.w(TAG, "readSportStepData: timeout, returning empty result")
+        resolveSportOnce(createEmptySportResult())
+      }
+      mainHandler.postDelayed(timeoutRunnable, 15000)
+      
       manager.readSportStep(
         object : IBleWriteResponse {
           override fun onResponse(code: Int) {
             if (code != Code.REQUEST_SUCCESS) {
-              Log.e(TAG, "readSportStepData: command failed with code $code")
+              Log.e(TAG, "readSportStepData: command failed with code $code, returning empty result")
+              resolveSportOnce(createEmptySportResult())
             }
           }
         },
@@ -1123,21 +1158,10 @@ class VeepooSDKModule : Module() {
                 "data" to result
               ))
               
-              promise.resolve(result)
+              resolveSportOnce(result)
             } else {
               Log.d(TAG, "onSportDataChange: sportData is null")
-              val emptyResult = mapOf(
-                "date" to (date ?: ""),
-                "stepCount" to 0,
-                "distance" to 0.0,
-                "calories" to 0.0
-              )
-              sendEvent(SPORT_STEP_DATA, mapOf(
-                "deviceId" to (connectedDeviceId ?: ""),
-                "date" to (date ?: ""),
-                "data" to emptyResult
-              ))
-              promise.resolve(emptyResult)
+              resolveSportOnce(createEmptySportResult())
             }
           }
         }
