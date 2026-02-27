@@ -538,7 +538,30 @@ public class VeepooSDKModule: Module {
 
     AsyncFunction("readSleepData") { (date: String?, promise: Promise) in
       #if targetEnvironment(simulator)
-      promise.resolve([])
+      let simulatorResult: [String: Any] = [
+        "date": date ?? self.getDateString(dayOffset: 0),
+        "items": [
+          [
+            "date": "2024-01-01",
+            "sleepTime": "22:30:00",
+            "wakeTime": "07:00:00",
+            "deepSleepMinutes": 90,
+            "lightSleepMinutes": 330,
+            "totalSleepMinutes": 480,
+            "sleepQuality": 85,
+            "sleepLine": "",
+            "wakeUpCount": 2
+          ]
+        ],
+        "summary": [
+          "totalDeepSleepMinutes": 90,
+          "totalLightSleepMinutes": 330,
+          "totalSleepMinutes": 480,
+          "averageSleepQuality": 85,
+          "totalWakeUpCount": 2
+        ]
+      ]
+      promise.resolve(simulatorResult)
       #else
       guard let manager = self.bleManager,
             let deviceAddress = manager.peripheralModel?.deviceAddress else {
@@ -547,38 +570,71 @@ public class VeepooSDKModule: Module {
       }
       
       let queryDate = date ?? self.getDateString(dayOffset: 0)
-      var result: [[String: Any]] = []
+      var items: [[String: Any]] = []
       let sleepType = manager.peripheralModel?.sleepType ?? 0
       
       print("🔵 [VeepooSDK] readSleepData: date=\(queryDate), sleepType=\(sleepType)")
       
       if sleepType > 0 {
-        if let items = VPDataBaseOperation.veepooSDKGetAccurateSleepData(withDate: queryDate, andTableID: deviceAddress) {
-          print("🔵 [VeepooSDK] readSleepData: accurate sleep items=\(items.count)")
-          for item in items {
-            var dict: [String: Any] = [:]
-            dict["date"] = String(item.wakeTime.prefix(10))
-            dict["sleepTime"] = item.sleepTime.count > 16 ? item.sleepTime : (item.sleepTime + ":00")
-            dict["wakeTime"] = item.wakeTime.count > 16 ? item.wakeTime : (item.wakeTime + ":00")
-            dict["deepSleepDuration"] = Double(item.deepDuration) ?? 0.0
-            dict["lightSleepDuration"] = Double(item.lightDuration) ?? 0.0
-            dict["totalSleepHours"] = Int(Double(item.sleepDuration) ?? 0.0) ?? 0
-            dict["totalSleepMinutes"] = 0
-            dict["sleepLevel"] = Int(Double(item.sleepQuality) ?? 0.0) ?? 0
-            dict["sleepLine"] = item.sleepLine ?? ""
-            dict["wakeUpCount"] = Int(Double(item.insomniaTimes) ?? 0.0) ?? 0
-            dict["sleepQulity"] = Int(Double(item.sleepQuality) ?? 0.0) ?? 0
-            result.append(dict)
+        if let sleepItems = VPDataBaseOperation.veepooSDKGetAccurateSleepData(withDate: queryDate, andTableID: deviceAddress) {
+          print("🔵 [VeepooSDK] readSleepData: accurate sleep items=\(sleepItems.count)")
+          for item in sleepItems {
+            let deepMinutes = Int(Double(item.deepDuration) ?? "0") ?? 0
+            let lightMinutes = Int(Double(item.lightDuration) ?? "0") ?? 0
+            let totalMinutes = Int(Double(item.sleepDuration) ?? "0") ?? 0
+            let quality = Int(Double(item.sleepQuality) ?? "0") ?? 0
+            let wakeCount = Int(Double(item.insomniaTimes) ?? "0") ?? 0
+            
+            let dict: [String: Any] = [
+              "date": String(item.wakeTime.prefix(10)),
+              "sleepTime": item.sleepTime.count > 16 ? item.sleepTime : (item.sleepTime + ":00"),
+              "wakeTime": item.wakeTime.count > 16 ? item.wakeTime : (item.wakeTime + ":00"),
+              "deepSleepMinutes": deepMinutes,
+              "lightSleepMinutes": lightMinutes,
+              "totalSleepMinutes": totalMinutes,
+              "sleepQuality": quality,
+              "sleepLine": item.sleepLine ?? "",
+              "wakeUpCount": wakeCount
+            ]
+            items.append(dict)
           }
         }
        } else {
-          if let items = VPDataBaseOperation.veepooSDKGetSleepData(withDate: queryDate, andTableID: deviceAddress) as? [[String: Any]] {
-            print("🔵 [VeepooSDK] readSleepData: ordinary sleep items=\(items.count)")
-            result = formatOrdinarySleep(items)
+          if let sleepItems = VPDataBaseOperation.veepooSDKGetSleepData(withDate: queryDate, andTableID: deviceAddress) as? [[String: Any]] {
+            print("🔵 [VeepooSDK] readSleepData: ordinary sleep items=\(sleepItems.count)")
+            items = self.formatOrdinarySleepToNewFormat(sleepItems)
           }
        }
        
-       print("✅ [VeepooSDK] readSleepData: result count=\(result.count)")
+       print("✅ [VeepooSDK] readSleepData: items count=\(items.count)")
+       
+       var totalDeep = 0
+       var totalLight = 0
+       var totalMinutes = 0
+       var totalQuality = 0
+       var totalWake = 0
+       
+       for item in items {
+         totalDeep += (item["deepSleepMinutes"] as? Int) ?? 0
+         totalLight += (item["lightSleepMinutes"] as? Int) ?? 0
+         totalMinutes += (item["totalSleepMinutes"] as? Int) ?? 0
+         totalQuality += (item["sleepQuality"] as? Int) ?? 0
+         totalWake += (item["wakeUpCount"] as? Int) ?? 0
+       }
+       
+       let avgQuality = items.count > 0 ? totalQuality / items.count : 0
+       
+       let result: [String: Any] = [
+         "date": queryDate,
+         "items": items,
+         "summary": [
+           "totalDeepSleepMinutes": totalDeep,
+           "totalLightSleepMinutes": totalLight,
+           "totalSleepMinutes": totalMinutes,
+           "averageSleepQuality": avgQuality,
+           "totalWakeUpCount": totalWake
+         ]
+       ]
        
        self.sendEvent(SLEEP_DATA, [
          "deviceId": self.connectedDeviceId ?? "",
@@ -1479,6 +1535,44 @@ public class VeepooSDKModule: Module {
       dict["sleepLevel"] = (item["SLEEP_LEVEL"] as? NSNumber)?.intValue ?? 0
       dict["sleepLine"] = line
       dict["wakeUpCount"] = Int(Double(wakeUpTimeStr) ?? 0)
+      
+      result.append(dict)
+    }
+    
+    return result
+  }
+
+  private func formatOrdinarySleepToNewFormat(_ items: [[String: Any]]) -> [[String: Any]] {
+    var result: [[String: Any]] = []
+    
+    for item in items {
+      let sleepTime = item["SLEEP_TIME"] as? String ?? ""
+      let wakeTime = item["WAKE_TIME"] as? String ?? ""
+      let line = item["SLE_LINE"] as? String ?? ""
+      
+      let deepHourStr = item["DEEP_HOUR"] as? String ?? "0"
+      let lightHourStr = item["LIGHT_HOUR"] as? String ?? "0"
+      let wakeUpTimeStr = item["WakeUpTime"] as? String ?? "0"
+      let sleHourStr = item["SLE_HOUR"] as? String ?? "0"
+      let sleMinuteStr = item["SLE_MINUTE"] as? String ?? "0"
+      
+      let allSleepMinutes = Int((Double(sleHourStr) ?? 0) * 60 + (Double(sleMinuteStr) ?? 0))
+      let deepSleepMinutes = Int((Double(deepHourStr) ?? 0) * 60)
+      let lightSleepMinutes = Int((Double(lightHourStr) ?? 0) * 60)
+      let sleepQuality = (item["SLEEP_LEVEL"] as? NSNumber)?.intValue ?? 0
+      let wakeUpCount = Int(Double(wakeUpTimeStr) ?? 0)
+      
+      let dict: [String: Any] = [
+        "date": String(wakeTime.prefix(10)),
+        "sleepTime": sleepTime,
+        "wakeTime": wakeTime,
+        "deepSleepMinutes": deepSleepMinutes,
+        "lightSleepMinutes": lightSleepMinutes,
+        "totalSleepMinutes": allSleepMinutes,
+        "sleepQuality": sleepQuality,
+        "sleepLine": line,
+        "wakeUpCount": wakeUpCount
+      ]
       
       result.append(dict)
     }

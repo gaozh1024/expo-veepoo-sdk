@@ -241,17 +241,28 @@ export interface BloodGlucoseData {
   timestamp: number;
 }
 
-export interface SleepData {
+export interface SleepDataItem {
   date: string;
   sleepTime: string;
   wakeTime: string;
-  deepSleepDuration: number;
-  lightSleepDuration: number;
-  totalSleepHours: number;
+  deepSleepMinutes: number;
+  lightSleepMinutes: number;
   totalSleepMinutes: number;
-  sleepLevel: number;
+  sleepQuality: number;
   sleepLine: string;
   wakeUpCount: number;
+}
+
+export interface SleepData {
+  date: string;
+  items: SleepDataItem[];
+  summary: {
+    totalDeepSleepMinutes: number;
+    totalLightSleepMinutes: number;
+    totalSleepMinutes: number;
+    averageSleepQuality: number;
+    totalWakeUpCount: number;
+  };
 }
 
 export interface DailyHealthData {

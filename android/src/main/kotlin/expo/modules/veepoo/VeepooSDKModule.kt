@@ -1005,34 +1005,66 @@ class VeepooSDKModule : Module() {
                 )
               }
               
-              val result = mapOf(
+              val deepSleepMinutes = sleepData.deepSleepTime
+              val lightSleepMinutes = sleepData.lowSleepTime
+              val totalSleepMinutes = sleepData.allSleepTime
+              val sleepQuality = sleepData.sleepQulity
+              val wakeUpCount = sleepData.wakeCount
+              
+              val item = mapOf(
                 "date" to (sleepData.date ?: ""),
                 "sleepTime" to sleepDownStr,
                 "wakeTime" to sleepUpStr,
-                "deepSleepDuration" to (sleepData.deepSleepTime / 60.0),
-                "lightSleepDuration" to (sleepData.lowSleepTime / 60.0),
-                "totalSleepHours" to (sleepData.allSleepTime / 60),
-                "totalSleepMinutes" to (sleepData.allSleepTime % 60),
-                "sleepLevel" to sleepData.sleepQulity,
+                "deepSleepMinutes" to deepSleepMinutes,
+                "lightSleepMinutes" to lightSleepMinutes,
+                "totalSleepMinutes" to totalSleepMinutes,
+                "sleepQuality" to sleepQuality,
                 "sleepLine" to (sleepData.sleepLine ?: ""),
-                "wakeUpCount" to sleepData.wakeCount
+                "wakeUpCount" to wakeUpCount
+              )
+              
+              val items = listOf(item)
+              
+              val summary = mapOf(
+                "totalDeepSleepMinutes" to deepSleepMinutes,
+                "totalLightSleepMinutes" to lightSleepMinutes,
+                "totalSleepMinutes" to totalSleepMinutes,
+                "averageSleepQuality" to sleepQuality,
+                "totalWakeUpCount" to wakeUpCount
+              )
+              
+              val result = mapOf(
+                "date" to (sleepData.date ?: ""),
+                "items" to items,
+                "summary" to summary
               )
               
               sendEvent(SLEEP_DATA, mapOf(
                 "deviceId" to (connectedDeviceId ?: ""),
                 "date" to (sleepData.date ?: ""),
-                "data" to listOf(result)
+                "data" to result
               ))
               
-              promise.resolve(listOf(result))
+              promise.resolve(result)
             } else {
               Log.d(TAG, "onSleepDataChange: sleepData is null")
+              val emptyResult = mapOf(
+                "date" to (date ?: ""),
+                "items" to emptyList<Any>(),
+                "summary" to mapOf(
+                  "totalDeepSleepMinutes" to 0,
+                  "totalLightSleepMinutes" to 0,
+                  "totalSleepMinutes" to 0,
+                  "averageSleepQuality" to 0,
+                  "totalWakeUpCount" to 0
+                )
+              )
               sendEvent(SLEEP_DATA, mapOf(
                 "deviceId" to (connectedDeviceId ?: ""),
                 "date" to (date ?: ""),
-                "data" to emptyList<Any>()
+                "data" to emptyResult
               ))
-              promise.resolve(emptyList<Any>())
+              promise.resolve(emptyResult)
             }
           }
           

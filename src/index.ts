@@ -32,6 +32,7 @@ export type {
   TemperatureData,
   StressData,
   BloodGlucoseData,
+  SleepDataItem,
   SleepData,
   DailyHealthData,
   SportStepData,
