@@ -59,7 +59,9 @@ class VeepooSDKModule : Module() {
   private var cachedDeviceVersion: String = ""
   private var cachedDeviceNumber: String = ""
   private val context: Context
-    get() = appContext.reactContext ?: appContext.currentActivity?.applicationContext!!
+    get() = appContext.reactContext 
+      ?: appContext.currentActivity?.applicationContext 
+      ?: throw IllegalStateException("Unable to get application context")
   
   override fun definition() = ModuleDefinition {
     Name("VeepooSDK")
@@ -109,21 +111,26 @@ class VeepooSDKModule : Module() {
     }
 
     AsyncFunction("requestPermissions") { promise: Promise ->
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        val hasPermission = context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
-                           context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-        if (hasPermission) {
-          promise.resolve(true)
+      try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+          val hasPermission = context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
+                             context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+          if (hasPermission) {
+            promise.resolve(true)
+          } else {
+            promise.reject("PERMISSION_DENIED", "Bluetooth permissions not granted", null)
+          }
         } else {
-          promise.reject("PERMISSION_DENIED", "Bluetooth permissions not granted", null)
+          val hasPermission = context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+          if (hasPermission) {
+            promise.resolve(true)
+          } else {
+            promise.reject("PERMISSION_DENIED", "Location permission not granted", null)
+          }
         }
-      } else {
-        val hasPermission = context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        if (hasPermission) {
-          promise.resolve(true)
-        } else {
-          promise.reject("PERMISSION_DENIED", "Location permission not granted", null)
-        }
+      } catch (e: Exception) {
+        Log.e(TAG, "Error checking permissions", e)
+        promise.reject("PERMISSION_ERROR", e.message, e)
       }
     }
 
