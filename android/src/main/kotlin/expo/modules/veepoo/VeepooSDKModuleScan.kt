@@ -38,7 +38,7 @@ fun ModuleDefinition.defineScan(module: VeepooSDKModule) {
       
       manager.startScanDevice(object : SearchResponse {
         override fun onSearchStarted() {
-          Log.d("VeepooSDKModule", "Scan started")
+          Log.d(TAG, "Scan started")
           module.isScanning = true
         }
 
@@ -56,24 +56,24 @@ fun ModuleDefinition.defineScan(module: VeepooSDKModule) {
               "device" to deviceData,
               "timestamp" to System.currentTimeMillis()
             ))
-            Log.d("VeepooSDKModule", "Device found: ${device.name}")
+            Log.d(TAG, "Device found: ${device.name}")
           }
         }
 
         override fun onSearchStopped() {
-          Log.d("VeepooSDKModule", "Scan stopped")
+          Log.d(TAG, "Scan stopped")
           module.isScanning = false
         }
 
         override fun onSearchCanceled() {
-          Log.d("VeepooSDKModule", "Scan canceled")
+          Log.d(TAG, "Scan canceled")
           module.isScanning = false
         }
       })
       
       promise.resolve(null)
     } catch (e: Exception) {
-      Log.e("VeepooSDKModule", "Error starting scan", e)
+      Log.e(TAG, "Error starting scan", e)
       promise.reject("SCAN_ERROR", e.message, e)
     }
   }
@@ -90,7 +90,7 @@ fun ModuleDefinition.defineScan(module: VeepooSDKModule) {
       module.isScanning = false
       promise.resolve(null)
     } catch (e: Exception) {
-      Log.e("VeepooSDKModule", "Error stopping scan", e)
+      Log.e(TAG, "Error stopping scan", e)
       promise.reject("SCAN_ERROR", e.message, e)
     }
   }

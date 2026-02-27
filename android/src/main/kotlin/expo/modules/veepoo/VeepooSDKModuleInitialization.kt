@@ -17,10 +17,10 @@ fun ModuleDefinition.defineInitialization(module: VeepooSDKModule) {
       
       manager.init(module.context)
       module.isInitialized = true
-      Log.d("VeepooSDKModule", "Veepoo SDK initialized successfully")
+      Log.d(TAG, "Veepoo SDK initialized successfully")
       promise.resolve(null)
     } catch (e: Exception) {
-      Log.e("VeepooSDKModule", "Error initializing Veepoo SDK", e)
+      Log.e(TAG, "Error initializing Veepoo SDK", e)
       promise.reject("INIT_ERROR", e.message, e)
     }
   }

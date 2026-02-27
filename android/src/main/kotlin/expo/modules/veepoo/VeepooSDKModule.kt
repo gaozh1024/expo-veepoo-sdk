@@ -6,12 +6,10 @@ import android.os.Looper
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
+private const val TAG = "VeepooSDKModule"
+
 // Expo 模块入口
 class VeepooSDKModule : Module() {
-  companion object {
-    const val TAG = "VeepooSDKModule"
-  }
-  
   @Volatile var isScanning = false
   @Volatile var connectedDeviceId: String? = null
   @Volatile var isInitialized = false

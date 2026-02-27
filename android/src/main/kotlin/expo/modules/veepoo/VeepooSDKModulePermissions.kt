@@ -18,7 +18,7 @@ fun ModuleDefinition.definePermissions(module: VeepooSDKModule) {
         promise.reject("PERMISSION_DENIED", "Bluetooth permissions not granted", null)
       }
     } catch (e: Exception) {
-      Log.e("VeepooSDKModule", "Error checking permissions", e)
+      Log.e(TAG, "Error checking permissions", e)
       promise.reject("PERMISSION_ERROR", e.message, e)
     }
   }

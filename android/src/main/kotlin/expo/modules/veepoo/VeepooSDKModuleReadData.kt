@@ -139,7 +139,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
       return@AsyncFunction
     }
     
-    Log.d("VeepooSDKModule", "readDeviceFunctions: returning ${module.cachedDeviceFunctions.size} function packages")
+    Log.d(TAG, "readDeviceFunctions: returning ${module.cachedDeviceFunctions.size} function packages")
     promise.resolve(module.cachedDeviceFunctions.toMap())
   }
 
@@ -157,7 +157,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
       return@AsyncFunction
     }
     
-    Log.d("VeepooSDKModule", "readDeviceVersion: reading device version info")
+    Log.d(TAG, "readDeviceVersion: reading device version info")
     
     val result = mapOf(
       "hardwareVersion" to module.cachedDeviceVersion,
@@ -173,7 +173,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
       "version" to result
     ))
     
-    Log.d("VeepooSDKModule", "readDeviceVersion: $result")
+    Log.d(TAG, "readDeviceVersion: $result")
     promise.resolve(result)
   }
 
@@ -192,16 +192,16 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
       object : IBleWriteResponse {
         override fun onResponse(code: Int) {
           if (code == Code.REQUEST_SUCCESS) {
-            Log.d("VeepooSDKModule", "startReadOriginData: command sent successfully")
+            Log.d(TAG, "startReadOriginData: command sent successfully")
           } else {
-            Log.e("VeepooSDKModule", "startReadOriginData: command failed with code $code")
+            Log.e(TAG, "startReadOriginData: command failed with code $code")
           }
         }
       },
       object : IOriginData3Listener {
         override fun onOriginFiveMinuteListDataChange(dataList3: List<OriginData3>?) {
           if (dataList3 != null && dataList3.isNotEmpty()) {
-            Log.d("VeepooSDKModule", "onOriginFiveMinuteListDataChange: ${dataList3.size} records")
+            Log.d(TAG, "onOriginFiveMinuteListDataChange: ${dataList3.size} records")
           }
         }
         
@@ -217,7 +217,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
               }
             }
           } catch (e: Exception) {
-            Log.e("VeepooSDKModule", "Error in onOriginHalfHourDataChange", e)
+            Log.e(TAG, "Error in onOriginHalfHourDataChange", e)
             module.sendEvent(ERROR, mapOf(
               "code" to "ORIGIN_DATA_ERROR",
               "message" to (e.message ?: "Unknown error processing origin data"),
@@ -228,20 +228,20 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
         
         override fun onOriginHRVOriginListDataChange(dataList: List<HRVOriginData>?) {
           if (dataList != null && dataList.isNotEmpty()) {
-            Log.d("VeepooSDKModule", "onOriginHRVOriginListDataChange: ${dataList.size} records")
+            Log.d(TAG, "onOriginHRVOriginListDataChange: ${dataList.size} records")
           }
         }
         
         override fun onOriginSpo2OriginListDataChange(dataList: List<Spo2hOriginData>?) {
           if (dataList != null && dataList.isNotEmpty()) {
-            Log.d("VeepooSDKModule", "onOriginSpo2OriginListDataChange: ${dataList.size} records")
+            Log.d(TAG, "onOriginSpo2OriginListDataChange: ${dataList.size} records")
           }
         }
         
         override fun onReadOriginProgressDetail(day: Int, date: String?, allPack: Int, currentPack: Int) {
           try {
             val progress = if (allPack > 0) currentPack.toDouble() / allPack.toDouble() else 0.0
-            Log.d("VeepooSDKModule", "onReadOriginProgressDetail: day=$day, progress=$progress")
+            Log.d(TAG, "onReadOriginProgressDetail: day=$day, progress=$progress")
             
             module.sendEvent(READ_ORIGIN_PROGRESS, mapOf(
               "deviceId" to (module.connectedDeviceId ?: ""),
@@ -253,7 +253,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
               )
             ))
           } catch (e: Exception) {
-            Log.e("VeepooSDKModule", "Error in onReadOriginProgressDetail", e)
+            Log.e(TAG, "Error in onReadOriginProgressDetail", e)
           }
         }
         
@@ -262,7 +262,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
             var p = progress.toDouble()
             if (p > 1.0) p /= 100.0
             
-            Log.d("VeepooSDKModule", "onReadOriginProgress: $p")
+            Log.d(TAG, "onReadOriginProgress: $p")
             
             module.sendEvent(READ_ORIGIN_PROGRESS, mapOf(
               "deviceId" to (module.connectedDeviceId ?: ""),
@@ -274,13 +274,13 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
               )
             ))
           } catch (e: Exception) {
-            Log.e("VeepooSDKModule", "Error in onReadOriginProgress", e)
+            Log.e(TAG, "Error in onReadOriginProgress", e)
           }
         }
         
         override fun onReadOriginComplete() {
           try {
-            Log.d("VeepooSDKModule", "onReadOriginComplete")
+            Log.d(TAG, "onReadOriginComplete")
             
             module.sendEvent(READ_ORIGIN_COMPLETE, mapOf(
               "deviceId" to (module.connectedDeviceId ?: ""),
@@ -289,7 +289,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
             
             promise.resolve(null)
           } catch (e: Exception) {
-            Log.e("VeepooSDKModule", "Error in onReadOriginComplete", e)
+            Log.e(TAG, "Error in onReadOriginComplete", e)
             module.sendEvent(READ_ORIGIN_COMPLETE, mapOf(
               "deviceId" to (module.connectedDeviceId ?: ""),
               "success" to false
@@ -313,7 +313,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
       return@AsyncFunction
     }
     
-    Log.d("VeepooSDKModule", "readDeviceAllData: starting to read all device data")
+    Log.d(TAG, "readDeviceAllData: starting to read all device data")
     
     module.sendEvent(READ_ORIGIN_PROGRESS, mapOf(
       "deviceId" to (module.connectedDeviceId ?: ""),
@@ -329,14 +329,14 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
       object : IBleWriteResponse {
         override fun onResponse(code: Int) {
           if (code != Code.REQUEST_SUCCESS) {
-            Log.e("VeepooSDKModule", "readDeviceAllData: command failed with code $code")
+            Log.e(TAG, "readDeviceAllData: command failed with code $code")
           }
         }
       },
       object : IOriginData3Listener {
         override fun onOriginFiveMinuteListDataChange(dataList3: List<OriginData3>?) {
           if (dataList3 != null && dataList3.isNotEmpty()) {
-            Log.d("VeepooSDKModule", "readDeviceAllData: onOriginFiveMinuteListDataChange: ${dataList3.size} records")
+            Log.d(TAG, "readDeviceAllData: onOriginFiveMinuteListDataChange: ${dataList3.size} records")
           }
         }
         
@@ -358,7 +358,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
         
         override fun onReadOriginProgressDetail(day: Int, date: String?, allPack: Int, currentPack: Int) {
           val progress = if (allPack > 0) currentPack.toDouble() / allPack.toDouble() else 0.0
-          Log.d("VeepooSDKModule", "readDeviceAllData: onReadOriginProgressDetail: day=$day, progress=$progress")
+          Log.d(TAG, "readDeviceAllData: onReadOriginProgressDetail: day=$day, progress=$progress")
           
           module.sendEvent(READ_ORIGIN_PROGRESS, mapOf(
             "deviceId" to (module.connectedDeviceId ?: ""),
@@ -375,7 +375,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
           var p = progress.toDouble()
           if (p > 1.0) p /= 100.0
           
-          Log.d("VeepooSDKModule", "readDeviceAllData: onReadOriginProgress: $p")
+          Log.d(TAG, "readDeviceAllData: onReadOriginProgress: $p")
           
           module.sendEvent(READ_ORIGIN_PROGRESS, mapOf(
             "deviceId" to (module.connectedDeviceId ?: ""),
@@ -389,7 +389,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
         }
         
         override fun onReadOriginComplete() {
-          Log.d("VeepooSDKModule", "readDeviceAllData: onReadOriginComplete")
+          Log.d(TAG, "readDeviceAllData: onReadOriginComplete")
           
           module.sendEvent(READ_ORIGIN_PROGRESS, mapOf(
             "deviceId" to (module.connectedDeviceId ?: ""),
@@ -424,7 +424,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
       return@AsyncFunction
     }
     
-    Log.d("VeepooSDKModule", "readSleepData: reading sleep data")
+    Log.d(TAG, "readSleepData: reading sleep data")
     
     val isPromiseResolved = java.util.concurrent.atomic.AtomicBoolean(false)
     
@@ -448,7 +448,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
     }
     
     val timeoutRunnable = Runnable {
-      Log.w("VeepooSDKModule", "readSleepData: timeout, returning empty result")
+      Log.w(TAG, "readSleepData: timeout, returning empty result")
       resolveSleepOnce(createEmptySleepResult())
     }
     module.mainHandler.postDelayed(timeoutRunnable, 15000)
@@ -457,7 +457,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
       object : IBleWriteResponse {
         override fun onResponse(code: Int) {
           if (code != Code.REQUEST_SUCCESS) {
-            Log.e("VeepooSDKModule", "readSleepData: command failed with code $code, returning empty result")
+            Log.e(TAG, "readSleepData: command failed with code $code, returning empty result")
             resolveSleepOnce(createEmptySleepResult())
           }
         }
@@ -465,7 +465,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
       object : ISleepDataListener {
         override fun onSleepDataChange(day: String?, sleepData: SleepData?) {
           if (sleepData != null) {
-            Log.d("VeepooSDKModule", "onSleepDataChange: day=$day, allSleepTime=${sleepData.allSleepTime}")
+            Log.d(TAG, "onSleepDataChange: day=$day, allSleepTime=${sleepData.allSleepTime}")
             
             var sleepDownStr = ""
             if (sleepData.sleepDown != null) {
@@ -533,21 +533,21 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
             
             resolveSleepOnce(result)
           } else {
-            Log.d("VeepooSDKModule", "onSleepDataChange: sleepData is null")
+            Log.d(TAG, "onSleepDataChange: sleepData is null")
             resolveSleepOnce(createEmptySleepResult())
           }
         }
         
         override fun onSleepProgress(progress: Float) {
-          Log.d("VeepooSDKModule", "onSleepProgress: $progress")
+          Log.d(TAG, "onSleepProgress: $progress")
         }
         
         override fun onSleepProgressDetail(day: String?, progress: Int) {
-          Log.d("VeepooSDKModule", "onSleepProgressDetail: day=$day, progress=$progress")
+          Log.d(TAG, "onSleepProgressDetail: day=$day, progress=$progress")
         }
         
         override fun onReadSleepComplete() {
-          Log.d("VeepooSDKModule", "onReadSleepComplete")
+          Log.d(TAG, "onReadSleepComplete")
         }
       },
       0
@@ -565,7 +565,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
       return@AsyncFunction
     }
     
-    Log.d("VeepooSDKModule", "readSportStepData: reading sport step data")
+    Log.d(TAG, "readSportStepData: reading sport step data")
     
     val isPromiseResolved = java.util.concurrent.atomic.AtomicBoolean(false)
     
@@ -584,7 +584,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
     }
     
     val timeoutRunnable = Runnable {
-      Log.w("VeepooSDKModule", "readSportStepData: timeout, returning empty result")
+      Log.w(TAG, "readSportStepData: timeout, returning empty result")
       resolveSportOnce(createEmptySportResult())
     }
     module.mainHandler.postDelayed(timeoutRunnable, 15000)
@@ -593,7 +593,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
       object : IBleWriteResponse {
         override fun onResponse(code: Int) {
           if (code != Code.REQUEST_SUCCESS) {
-            Log.e("VeepooSDKModule", "readSportStepData: command failed with code $code, returning empty result")
+            Log.e(TAG, "readSportStepData: command failed with code $code, returning empty result")
             resolveSportOnce(createEmptySportResult())
           }
         }
@@ -601,7 +601,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
       object : ISportDataListener {
         override fun onSportDataChange(sportData: SportData?) {
           if (sportData != null) {
-            Log.d("VeepooSDKModule", "onSportDataChange: step=${sportData.step}, dis=${sportData.dis}, kcal=${sportData.kcal}")
+            Log.d(TAG, "onSportDataChange: step=${sportData.step}, dis=${sportData.dis}, kcal=${sportData.kcal}")
             
             val result = mapOf(
               "date" to (date ?: ""),
@@ -618,7 +618,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
             
             resolveSportOnce(result)
           } else {
-            Log.d("VeepooSDKModule", "onSportDataChange: sportData is null")
+            Log.d(TAG, "onSportDataChange: sportData is null")
             resolveSportOnce(createEmptySportResult())
           }
         }
@@ -637,13 +637,13 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
       return@AsyncFunction
     }
     
-    Log.d("VeepooSDKModule", "readOriginData: dayOffset=$dayOffset")
+    Log.d(TAG, "readOriginData: dayOffset=$dayOffset")
     
     manager.readOriginData(
       object : IBleWriteResponse {
         override fun onResponse(code: Int) {
           if (code != Code.REQUEST_SUCCESS) {
-            Log.e("VeepooSDKModule", "readOriginData: command failed with code $code")
+            Log.e(TAG, "readOriginData: command failed with code $code")
           }
         }
       },
@@ -652,7 +652,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
         
         override fun onOriginFiveMinuteListDataChange(dataList3: List<OriginData3>?) {
           if (dataList3 != null && dataList3.isNotEmpty()) {
-            Log.d("VeepooSDKModule", "onOriginFiveMinuteListDataChange: ${dataList3.size} records")
+            Log.d(TAG, "onOriginFiveMinuteListDataChange: ${dataList3.size} records")
             
             for (data in dataList3) {
               val timeData = data.getmTime()
@@ -691,7 +691,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
         override fun onReadOriginProgress(progress: Float) {}
         
         override fun onReadOriginComplete() {
-          Log.d("VeepooSDKModule", "readOriginData complete: ${dataList.size} records")
+          Log.d(TAG, "readOriginData complete: ${dataList.size} records")
           val sortedList = dataList.sortedBy { it["time"] as? String ?: "" }
           promise.resolve(sortedList)
         }
