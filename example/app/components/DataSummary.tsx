@@ -1,15 +1,24 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Colors, Spacing, BorderRadius, FontSize, Shadows } from '../theme';
 
 interface DataSummaryItemProps {
   value: string | number;
   label: string;
+  icon?: string;
+  color?: string;
 }
 
-export const DataSummaryItem: React.FC<DataSummaryItemProps> = ({ value, label }) => {
+export const DataSummaryItem: React.FC<DataSummaryItemProps> = ({ 
+  value, 
+  label,
+  icon,
+  color = Colors.primary,
+}) => {
   return (
-    <View style={styles.summaryItem}>
-      <Text style={styles.summaryValue}>{value}</Text>
+    <View style={[styles.summaryItem, Shadows.md]}>
+      {icon && <Text style={styles.icon}>{icon}</Text>}
+      <Text style={[styles.summaryValue, { color }]}>{value}</Text>
       <Text style={styles.summaryLabel}>{label}</Text>
     </View>
   );
@@ -26,27 +35,34 @@ export const DataSummaryGrid: React.FC<DataSummaryGridProps> = ({ children }) =>
 const styles = StyleSheet.create({
   summaryGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     flexWrap: 'wrap',
-    marginBottom: 8,
+    marginHorizontal: -Spacing.xs,
   },
   summaryItem: {
     flex: 1,
-    minWidth: '45%',
+    minWidth: '48%',
     alignItems: 'center',
-    padding: 8,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    margin: 4,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    margin: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  icon: {
+    fontSize: 24,
+    marginBottom: Spacing.xs,
   },
   summaryValue: {
-    fontSize: 24,
+    fontSize: FontSize.xxl,
     fontWeight: 'bold',
-    color: '#333',
   },
   summaryLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+    fontSize: FontSize.xs,
+    color: Colors.text.secondary,
+    marginTop: Spacing.xs,
+    textAlign: 'center',
   },
 });

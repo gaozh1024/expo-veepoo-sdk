@@ -101,7 +101,7 @@ extension VeepooSDKModule {
       #else
       guard let manager = self.bleManager,
             let model = manager.peripheralModel else {
-        promise.reject("NO_DEVICE_CONNECTED", "No device connected or model unavailable")
+        promise.reject("DEVICE_NOT_CONNECTED", "No device connected or model unavailable")
         return
       }
       
@@ -141,7 +141,7 @@ extension VeepooSDKModule {
       
       guard let manager = self.bleManager,
             let deviceAddress = manager.peripheralModel?.deviceAddress else {
-        promise.reject("NO_DEVICE_CONNECTED", "No device connected or address unavailable")
+        promise.reject("DEVICE_NOT_CONNECTED", "No device connected or address unavailable")
         return
       }
       
@@ -266,7 +266,7 @@ extension VeepooSDKModule {
       #else
       guard let manager = self.bleManager,
             let deviceAddress = manager.peripheralModel?.deviceAddress else {
-        promise.reject("NO_DEVICE_CONNECTED", "No device connected")
+        promise.reject("DEVICE_NOT_CONNECTED", "No device connected")
         return
       }
       
@@ -352,7 +352,7 @@ extension VeepooSDKModule {
       #else
       guard let manager = VPBleCentralManage.sharedBleManager(),
             let deviceAddress = manager.peripheralModel?.deviceAddress else {
-        promise.reject("NO_DEVICE_CONNECTED", "No device connected or address unavailable")
+        promise.reject("DEVICE_NOT_CONNECTED", "No device connected or address unavailable")
         return
       }
       
@@ -410,7 +410,7 @@ extension VeepooSDKModule {
       
       guard let manager = self.bleManager,
             let deviceAddress = manager.peripheralModel?.deviceAddress else {
-        promise.reject("NO_DEVICE_CONNECTED", "No device connected or address unavailable")
+        promise.reject("DEVICE_NOT_CONNECTED", "No device connected or address unavailable")
         return
       }
       

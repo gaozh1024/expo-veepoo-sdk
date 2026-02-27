@@ -48,7 +48,7 @@ extension VeepooSDKModule {
     #if !targetEnvironment(simulator)
     guard let manager = self.bleManager,
           let _ = manager.peripheralModel?.deviceAddress else {
-      promise.reject("NO_DEVICE_CONNECTED", "No device connected")
+      promise.reject("DEVICE_NOT_CONNECTED", "No device connected")
       return
     }
     

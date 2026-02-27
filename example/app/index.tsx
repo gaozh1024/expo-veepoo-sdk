@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,538 +6,38 @@ import {
   FlatList,
   StyleSheet,
   ScrollView,
-  Alert,
   ActivityIndicator,
-  PermissionsAndroid,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import VeepooSDK, {
-  VeepooDevice,
-  VeepooError,
-  BatteryInfo,
-  ReadOriginProgress,
-  HalfHourData,
-  SportStepData,
-  HeartRateTestResult,
-  BloodPressureTestResult,
-  BloodOxygenTestResult,
-  TemperatureTestResult,
-  StressData,
-  BloodGlucoseData,
-} from '@gaozh1024/expo-veepoo-sdk';
+import type { VeepooDevice } from '@gaozh1024/expo-veepoo-sdk';
 import { TestButtonGroup } from './components/TestButtonGroup';
 import { TestResultBox, TestResultItem } from './components/TestResultBox';
 import { EmptyDataBox } from './components/EmptyDataBox';
 import { DataSummaryGrid, DataSummaryItem } from './components/DataSummary';
 import { SleepCard } from './components/SleepCard';
-import type { SavedDevice, SleepDataItem, TestType } from './types';
-
-const SAVED_DEVICES_KEY = '@veepoo_saved_devices';
+import { useDeviceState, useTestState, useDataState, useVeepooSDK } from './hooks';
+import type { SavedDevice, TestType } from './types';
+import { Colors, Spacing, BorderRadius, FontSize, Shadows } from './theme';
 
 export default function HomeScreen() {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [devices, setDevices] = useState<VeepooDevice[]>([]);
-  const [savedDevices, setSavedDevices] = useState<SavedDevice[]>([]);
-  const [isScanning, setIsScanning] = useState(false);
-  const [connectedDeviceId, setConnectedDeviceId] = useState<string | null>(null);
-  const [isDeviceReady, setIsDeviceReady] = useState(false);
   const [status, setStatus] = useState('准备就绪');
-  const [battery, setBattery] = useState<BatteryInfo | null>(null);
 
-  const [heartRateResult, setHeartRateResult] = useState<HeartRateTestResult | null>(null);
-  const [bloodPressureResult, setBloodPressureResult] = useState<BloodPressureTestResult | null>(null);
-  const [bloodOxygenResult, setBloodOxygenResult] = useState<BloodOxygenTestResult | null>(null);
-  const [temperatureResult, setTemperatureResult] = useState<TemperatureTestResult | null>(null);
-  const [stressData, setStressData] = useState<StressData | null>(null);
-  const [bloodGlucoseData, setBloodGlucoseData] = useState<BloodGlucoseData | null>(null);
+  const device = useDeviceState();
+  const test = useTestState();
+  const data = useDataState();
 
-  const [isTesting, setIsTesting] = useState<string | null>(null);
-
-  const [isLoadingData, setIsLoadingData] = useState(false);
-  const [loadDataProgress, setLoadDataProgress] = useState(0);
-  const [originDataList, setOriginDataList] = useState<HalfHourData[]>([]);
-  const [sleepDataList, setSleepDataList] = useState<SleepDataItem[]>([]);
-  const [sportStepData, setSportStepData] = useState<SportStepData | null>(null);
-  
-  const sportSummary = React.useMemo(() => {
-    const totalSteps = originDataList.reduce((sum, d) => sum + (d.stepValue || 0), 0);
-    const totalDistance = originDataList.reduce((sum, d) => sum + (d.disValue || 0), 0);
-    const totalCalories = originDataList.reduce((sum, d) => sum + (d.calValue || 0), 0);
-    const avgHeartRate = originDataList.filter(d => d.heartValue && d.heartValue > 0).length > 0
-      ? Math.round(originDataList.filter(d => d.heartValue && d.heartValue > 0).reduce((sum, d) => sum + (d.heartValue || 0), 0) / originDataList.filter(d => d.heartValue && d.heartValue > 0).length)
-      : 0;
-    return { totalSteps, totalDistance, totalCalories, avgHeartRate };
-  }, [originDataList]);
-
-  // 加载已保存的设备列表
-  const loadSavedDevices = async () => {
-    try {
-      const json = await AsyncStorage.getItem(SAVED_DEVICES_KEY);
-      if (json) {
-        const devices: SavedDevice[] = JSON.parse(json);
-        setSavedDevices(devices);
-        console.log('[loadSavedDevices] 已加载保存的设备:', devices.length, '个');
-      }
-    } catch (error) {
-      console.error('[loadSavedDevices] 加载失败:', error);
-    }
-  };
-
-  // 保存设备到缓存
-  const saveDevice = async (device: VeepooDevice) => {
-    try {
-      const savedDevice: SavedDevice = {
-        id: device.id,
-        name: device.name,
-        mac: device.mac,
-        uuid: device.uuid,
-        lastConnected: Date.now(),
-      };
-      
-      let devices = savedDevices.filter(d => d.id !== device.id);
-      devices.unshift(savedDevice);
-      devices = devices.slice(0, 5);
-      
-      await AsyncStorage.setItem(SAVED_DEVICES_KEY, JSON.stringify(devices));
-      setSavedDevices(devices);
-      console.log('[saveDevice] 已保存设备:', device.name);
-    } catch (error) {
-      console.error('[saveDevice] 保存失败:', error);
-    }
-  };
-
-  // 删除已保存的设备
-  const removeSavedDevice = async (deviceId: string) => {
-    try {
-      const devices = savedDevices.filter(d => d.id !== deviceId);
-      await AsyncStorage.setItem(SAVED_DEVICES_KEY, JSON.stringify(devices));
-      setSavedDevices(devices);
-      console.log('[removeSavedDevice] 已删除设备:', deviceId);
-    } catch (error) {
-      console.error('[removeSavedDevice] 删除失败:', error);
-    }
-  };
-
-  useEffect(() => {
-    initializeSDK();
-    setupEventListeners();
-    loadSavedDevices();
-    return () => {
-      VeepooSDK.removeAllListeners();
-    };
-  }, []);
-
-  const requestBluetoothPermissions = async (): Promise<boolean> => {
-    if (Platform.OS !== 'android') {
-      return true;
-    }
-
-    try {
-      if (Number(Platform.Version) >= 31) {
-        const granted = await PermissionsAndroid.requestMultiple([
-          PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-          PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        ]);
-
-        const allGranted = 
-          granted['android.permission.BLUETOOTH_SCAN'] === PermissionsAndroid.RESULTS.GRANTED &&
-          granted['android.permission.BLUETOOTH_CONNECT'] === PermissionsAndroid.RESULTS.GRANTED &&
-          granted['android.permission.ACCESS_FINE_LOCATION'] === PermissionsAndroid.RESULTS.GRANTED;
-
-        if (!allGranted) {
-          Alert.alert('权限不足', '需要蓝牙和位置权限才能扫描和连接设备');
-          return false;
-        }
-      } else {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-        );
-
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          Alert.alert('权限不足', '需要位置权限才能扫描蓝牙设备');
-          return false;
-        }
-      }
-
-      return true;
-    } catch (error) {
-      console.error('请求权限失败:', error);
-      return false;
-    }
-  };
-
-  const initializeSDK = async () => {
-    try {
-      setStatus('正在请求权限...');
-      
-      const hasPermission = await requestBluetoothPermissions();
-      if (!hasPermission) {
-        setStatus('权限被拒绝');
-        return;
-      }
-
-      setStatus('正在初始化 SDK...');
-      await VeepooSDK.init();
-      setIsInitialized(true);
-      setStatus('SDK 已初始化');
-
-      const isEnabled = await VeepooSDK.checkBluetoothStatus();
-      if (!isEnabled) {
-        setStatus('请开启蓝牙');
-        return;
-      }
-
-      setStatus('准备就绪');
-    } catch (error) {
-      setStatus(`初始化失败: ${error}`);
-    }
-  };
-
-  const setupEventListeners = () => {
-    VeepooSDK.on('deviceFound', (result) => {
-      console.log('[deviceFound]', JSON.stringify(result, null, 2));
-      setDevices((prev) => {
-        const exists = prev.find((d) => d.id === result.device.id);
-        return exists ? prev : [...prev, result.device];
-      });
-    });
-
-    VeepooSDK.on('deviceConnected', (payload) => {
-      console.log('[deviceConnected]', JSON.stringify(payload, null, 2));
-      setConnectedDeviceId(payload.deviceId);
-      setIsScanning(false);
-      setStatus('设备已连接，等待验证...');
-    });
-
-    VeepooSDK.on('deviceDisconnected', (payload) => {
-      console.log('[deviceDisconnected]', JSON.stringify(payload, null, 2));
-      setConnectedDeviceId(null);
-      setIsDeviceReady(false);
-      setBattery(null);
-      setStatus('设备已断开');
-      setIsLoadingData(false);
-      setLoadDataProgress(0);
-      setOriginDataList([]);
-    });
-
-    VeepooSDK.on('deviceReady', (payload) => {
-      console.log('[deviceReady]', JSON.stringify(payload, null, 2));
-      setIsDeviceReady(true);
-      setStatus('设备准备就绪');
-      readBattery();
-    });
-
-    VeepooSDK.on('batteryData', (payload) => {
-      console.log('[batteryData]', JSON.stringify(payload, null, 2));
-      setBattery(payload.data);
-    });
-
-    VeepooSDK.on('heartRateTestResult', (payload) => {
-      console.log('[heartRateTestResult]', JSON.stringify(payload, null, 2));
-      setHeartRateResult(payload.result);
-      setHeartRateProgress(payload.result.progress ?? 0);
-      if (payload.result.state === 'over') {
-        setIsTesting(null);
-        setHeartRateProgress(0);
-      }
-    });
-
-    VeepooSDK.on('bloodPressureTestResult', (payload) => {
-      console.log('[bloodPressureTestResult]', JSON.stringify(payload, null, 2));
-      setBloodPressureResult(payload.result);
-      if (payload.result.state === 'over') {
-        setIsTesting(null);
-      }
-    });
-
-    VeepooSDK.on('bloodOxygenTestResult', (payload) => {
-      console.log('[bloodOxygenTestResult]', JSON.stringify(payload, null, 2));
-      setBloodOxygenResult(payload.result);
-      if (payload.result.state === 'over') {
-        setIsTesting(null);
-      }
-    });
-
-    VeepooSDK.on('temperatureTestResult', (payload) => {
-      console.log('[temperatureTestResult]', JSON.stringify(payload, null, 2));
-      setTemperatureResult(payload.result);
-      if (payload.result.state === 'over') {
-        setIsTesting(null);
-      }
-    });
-
-    VeepooSDK.on('stressData', (payload) => {
-      console.log('[stressData]', JSON.stringify(payload, null, 2));
-      setStressData(payload.data);
-      setIsTesting(null);
-    });
-
-    VeepooSDK.on('bloodGlucoseData', (payload) => {
-      console.log('[bloodGlucoseData]', JSON.stringify(payload, null, 2));
-      setBloodGlucoseData(payload.data);
-      setIsTesting(null);
-    });
-
-    VeepooSDK.on('error', (error: VeepooError) => {
-      console.error('[error]', JSON.stringify(error, null, 2));
-      setIsTesting(null);
-      setIsLoadingData(false);
-      Alert.alert('错误', error.message);
-    });
-
-    VeepooSDK.on('readOriginProgress', (payload) => {
-      console.log('[readOriginProgress]', JSON.stringify(payload, null, 2));
-      const progress = payload.progress as ReadOriginProgress;
-      if (progress.progress !== undefined) {
-        const percent = Math.round(progress.progress * 100);
-        setLoadDataProgress(percent);
-        setStatus(`正在读取历史数据... ${percent}%`);
-      }
-    });
-
-    VeepooSDK.on('readOriginComplete', (payload) => {
-      console.log('[readOriginComplete]', JSON.stringify(payload, null, 2));
-      setIsLoadingData(false);
-      setLoadDataProgress(100);
-      setStatus('历史数据读取完成');
-      console.log('[历史数据读取完成] 共读取', originDataList.length, '条数据');
-    });
-
-    VeepooSDK.on('originHalfHourData', (payload) => {
-      console.log('[originHalfHourData]', JSON.stringify(payload, null, 2));
-      const data = payload.data as HalfHourData;
-      setOriginDataList((prev) => [...prev, data]);
-    });
-
-    VeepooSDK.on('sleepData', (payload) => {
-      console.log('[sleepData]', JSON.stringify(payload, null, 2));
-      if (payload.data && Array.isArray(payload.data)) {
-        setSleepDataList(payload.data);
-      }
-    });
-
-    VeepooSDK.on('sportStepData', (payload) => {
-      console.log('[sportStepData]', JSON.stringify(payload, null, 2));
-      if (payload.data) {
-        setSportStepData(payload.data);
-      }
-    });
-  };
-
-  const startScan = async () => {
-    if (!isInitialized) {
-      Alert.alert('提示', 'SDK 未初始化');
-      return;
-    }
-
-    setDevices([]);
-    setIsScanning(true);
-    setStatus('正在扫描...');
-
-    try {
-      console.log('[startScan] 开始扫描...');
-      await VeepooSDK.startScan({ timeout: 10000 });
-    } catch (error) {
-      console.error('[startScan] 扫描失败:', error);
-      setStatus(`扫描失败: ${error}`);
-      setIsScanning(false);
-    }
-  };
-
-  const stopScan = async () => {
-    console.log('[stopScan] 停止扫描');
-    await VeepooSDK.stopScan();
-    setIsScanning(false);
-    setStatus('扫描已停止');
-  };
-
-  const connectDevice = async (device: VeepooDevice) => {
-    try {
-      console.log('[connectDevice] 连接设备:', device);
-      setStatus(`正在连接 ${device.name}...`);
-      await VeepooSDK.connect(device.id, { password: '0000' });
-      await saveDevice(device);
-      console.log('[connectDevice] 连接命令已发送');
-    } catch (error) {
-      console.error('[connectDevice] 连接失败:', error);
-      setStatus(`连接失败: ${error}`);
-    }
-  };
-
-  const connectSavedDevice = async (savedDevice: SavedDevice) => {
-    try {
-      console.log('[connectSavedDevice] 连接历史设备:', savedDevice);
-      setStatus(`正在连接 ${savedDevice.name}...`);
-      await VeepooSDK.connect(savedDevice.id, { 
-        password: '0000',
-        uuid: savedDevice.uuid || savedDevice.id
-      });
-      console.log('[connectSavedDevice] 连接命令已发送');
-    } catch (error) {
-      console.error('[connectSavedDevice] 连接失败:', error);
-      setStatus(`连接失败: ${error}`);
-      Alert.alert('连接失败', '请确保设备已开启并在附近，或重新扫描设备');
-    }
-  };
-
-  const disconnect = async () => {
-    if (connectedDeviceId) {
-      console.log('[disconnect] 断开设备:', connectedDeviceId);
-      await VeepooSDK.disconnect(connectedDeviceId);
-    }
-  };
-
-  const readBattery = async () => {
-    try {
-      console.log('[readBattery] 读取电量...');
-      const batteryInfo = await VeepooSDK.readBattery();
-      console.log('[readBattery] 电量数据:', JSON.stringify(batteryInfo, null, 2));
-      setBattery(batteryInfo);
-    } catch (error) {
-      console.error('[readBattery] 读取电量失败:', error);
-    }
-  };
-
-  const fetchSleepData = async () => {
-    if (!isDeviceReady) {
-      Alert.alert('提示', '设备未准备就绪');
-      return;
-    }
-    try {
-      console.log('[fetchSleepData] 获取睡眠数据...');
-      setStatus('正在获取睡眠数据...');
-      const sleepData = await VeepooSDK.readSleepData();
-      console.log('[fetchSleepData] 睡眠数据:', sleepData);
-      if (sleepData && sleepData.length > 0) {
-        const allItems = sleepData.flatMap(d => d.items);
-        setSleepDataList(allItems);
-        setStatus('睡眠数据获取成功');
-      } else {
-        setStatus('暂无睡眠数据');
-      }
-    } catch (error) {
-      console.error('[fetchSleepData] 获取睡眠数据失败:', error);
-      setStatus(`获取失败: ${error}`);
-    }
-  };
-
-  const fetchSportData = async () => {
-    if (!isDeviceReady) {
-      Alert.alert('提示', '设备未准备就绪');
-      return;
-    }
-    try {
-      console.log('[fetchSportData] 获取运动数据...');
-      setStatus('正在获取运动数据...');
-      const sportData = await VeepooSDK.readSportStepData();
-      console.log('[fetchSportData] 运动数据:', sportData);
-      if (sportData) {
-        setSportStepData(sportData);
-        setStatus('运动数据获取成功');
-      } else {
-        setStatus('暂无运动数据');
-      }
-    } catch (error) {
-      console.error('[fetchSportData] 获取运动数据失败:', error);
-      setStatus(`获取失败: ${error}`);
-    }
-  };
-
-  const fetchHistoryData = async () => {
-    if (!isDeviceReady) {
-      Alert.alert('提示', '设备未准备就绪');
-      return;
-    }
-    try {
-      console.log('[fetchHistoryData] 获取历史数据...');
-      setStatus('正在获取历史数据...');
-      setIsLoadingData(true);
-      setLoadDataProgress(0);
-      setOriginDataList([]);
-      
-      await VeepooSDK.startReadOriginData();
-      
-      setStatus('历史数据获取成功');
-    } catch (error) {
-      console.error('[fetchHistoryData] 获取历史数据失败:', error);
-      setStatus(`获取失败: ${error}`);
-    } finally {
-      setIsLoadingData(false);
-    }
-  };
-
-  const [heartRateProgress, setHeartRateProgress] = useState<number>(0);
-
-  const startTest = async (testType: string) => {
-    if (!isDeviceReady) {
-      Alert.alert('提示', '设备未准备就绪');
-      return;
-    }
-
-    console.log(`[startTest] 开始 ${testType} 测试`);
-    setIsTesting(testType);
-
-    try {
-      switch (testType) {
-        case 'heartRate':
-          await VeepooSDK.startHeartRateTest();
-          break;
-        case 'bloodPressure':
-          await VeepooSDK.startBloodPressureTest();
-          break;
-        case 'bloodOxygen':
-          await VeepooSDK.startBloodOxygenTest();
-          break;
-        case 'temperature':
-          await VeepooSDK.startTemperatureTest();
-          break;
-        case 'stress':
-          await VeepooSDK.startStressTest();
-          break;
-        case 'bloodGlucose':
-          await VeepooSDK.startBloodGlucoseTest();
-          break;
-      }
-      console.log(`[startTest] ${testType} 测试命令已发送`);
-    } catch (error) {
-      console.error(`[startTest] ${testType} 测试失败:`, error);
-      setIsTesting(null);
-    }
-  };
-
-  const stopTest = async (testType: string) => {
-    console.log(`[stopTest] 停止 ${testType} 测试`);
-    setIsTesting(null);
-
-    try {
-      switch (testType) {
-        case 'heartRate':
-          await VeepooSDK.stopHeartRateTest();
-          break;
-        case 'bloodPressure':
-          await VeepooSDK.stopBloodPressureTest();
-          break;
-        case 'bloodOxygen':
-          await VeepooSDK.stopBloodOxygenTest();
-          break;
-        case 'temperature':
-          await VeepooSDK.stopTemperatureTest();
-          break;
-        case 'stress':
-          await VeepooSDK.stopStressTest();
-          break;
-        case 'bloodGlucose':
-          await VeepooSDK.stopBloodGlucoseTest();
-          break;
-      }
-      console.log(`[stopTest] ${testType} 停止命令已发送`);
-    } catch (error) {
-      console.error(`[stopTest] ${testType} 停止失败:`, error);
-    }
-  };
+  const {
+    startScan,
+    stopScan,
+    connectDevice,
+    connectSavedDevice,
+    disconnect,
+    fetchSleepData,
+    fetchSportData,
+    fetchHistoryData,
+    startTest,
+    stopTest,
+  } = useVeepooSDK({ device, test, data, setStatus });
 
   const renderDevice = useCallback(
     ({ item }: { item: VeepooDevice }) => (
@@ -550,11 +50,11 @@ export default function HomeScreen() {
         <Button
           title="连接"
           onPress={() => connectDevice(item)}
-          disabled={connectedDeviceId !== null}
+          disabled={device.connectedDeviceId !== null}
         />
       </View>
     ),
-    [connectedDeviceId]
+    [device.connectedDeviceId, connectDevice]
   );
 
   const renderSavedDevice = useCallback(
@@ -571,20 +71,94 @@ export default function HomeScreen() {
           <Button
             title="连接"
             onPress={() => connectSavedDevice(item)}
-            disabled={connectedDeviceId !== null}
+            disabled={device.connectedDeviceId !== null}
           />
           <Button
             title="删除"
-            onPress={() => removeSavedDevice(item.id)}
+            onPress={() => device.removeSavedDevice(item.id)}
             color="#FF3B30"
           />
         </View>
       </View>
     ),
-    [connectedDeviceId]
+    [device.connectedDeviceId, connectSavedDevice, device]
   );
 
+  const testTypes: TestType[] = ['heartRate', 'bloodPressure', 'bloodOxygen', 'temperature', 'stress', 'bloodGlucose'];
 
+  const testTitles: Record<TestType, string> = {
+    heartRate: '心率测试',
+    bloodPressure: '血压测试',
+    bloodOxygen: '血氧测试',
+    temperature: '体温测试',
+    stress: '压力测试',
+    bloodGlucose: '血糖测试',
+  };
+
+  const renderTestResult = (testType: TestType) => {
+    switch (testType) {
+      case 'heartRate':
+        return test.heartRateResult && (
+          <TestResultBox>
+            <TestResultItem label="状态" value={test.heartRateResult.state} />
+            {test.heartRateResult.value && (
+              <TestResultItem label="心率" value={String(test.heartRateResult.value)} unit="bpm" />
+            )}
+            {test.heartRateResult.progress !== undefined && (
+              <TestResultItem label="进度" value={String(test.heartRateResult.progress)} />
+            )}
+          </TestResultBox>
+        );
+      case 'bloodPressure':
+        return test.bloodPressureResult && (
+          <TestResultBox>
+            <TestResultItem label="状态" value={test.bloodPressureResult.state} />
+            {test.bloodPressureResult.progress !== undefined && (
+              <TestResultItem label="进度" value={String(test.bloodPressureResult.progress)} />
+            )}
+            {test.bloodPressureResult.systolic && (
+              <TestResultItem label="收缩压" value={String(test.bloodPressureResult.systolic)} unit="mmHg" />
+            )}
+            {test.bloodPressureResult.diastolic && (
+              <TestResultItem label="舒张压" value={String(test.bloodPressureResult.diastolic)} unit="mmHg" />
+            )}
+            {test.bloodPressureResult.pulse && (
+              <TestResultItem label="脉搏" value={String(test.bloodPressureResult.pulse)} unit="bpm" />
+            )}
+          </TestResultBox>
+        );
+      case 'bloodOxygen':
+        return test.bloodOxygenResult && (
+          <TestResultBox>
+            <TestResultItem label="状态" value={test.bloodOxygenResult.state} />
+            {test.bloodOxygenResult.value && (
+              <TestResultItem label="血氧" value={String(test.bloodOxygenResult.value)} unit="%" />
+            )}
+          </TestResultBox>
+        );
+      case 'temperature':
+        return test.temperatureResult && (
+          <TestResultBox>
+            <TestResultItem label="状态" value={test.temperatureResult.state} />
+            {test.temperatureResult.value && (
+              <TestResultItem label="体温" value={String(test.temperatureResult.value.toFixed(1))} unit="℃" />
+            )}
+          </TestResultBox>
+        );
+      case 'stress':
+        return test.stressData && (
+          <TestResultBox>
+            <TestResultItem label="压力值" value={String(test.stressData.stress)} />
+          </TestResultBox>
+        );
+      case 'bloodGlucose':
+        return test.bloodGlucoseData && (
+          <TestResultBox>
+            <TestResultItem label="血糖值" value={String(test.bloodGlucoseData.glucose)} unit="mmol/L" />
+          </TestResultBox>
+        );
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -592,40 +166,41 @@ export default function HomeScreen() {
         <Text style={styles.title}>Veepoo SDK 测试</Text>
         <Text style={styles.status}>状态: {status}</Text>
 
-        {(isLoadingData || (connectedDeviceId && isDeviceReady && loadDataProgress < 100)) && (
+        {(data.isLoadingData || (device.connectedDeviceId && device.isDeviceReady && data.loadDataProgress < 100)) && (
           <View style={styles.loadingDataContainer}>
             <ActivityIndicator size="large" color="#007AFF" />
             <Text style={styles.loadingDataText}>正在读取历史数据...</Text>
             <View style={styles.progressBarContainer}>
-              <View style={[styles.progressBarFill, { width: `${loadDataProgress}%` }]} />
+              <View style={[styles.progressBarFill, { width: `${data.loadDataProgress}%` }]} />
             </View>
-            <Text style={styles.progressText}>{loadDataProgress}%</Text>
+            <Text style={styles.progressText}>{data.loadDataProgress}%</Text>
           </View>
         )}
 
-        {battery && !isLoadingData && (
+        {device.battery && !data.isLoadingData && (
           <View style={styles.batteryInfo}>
             <Text>
-              电量: {battery.percent > 0 ? battery.percent : battery.level}%{battery.isLowBattery ? ' 电量低' : ''}
+              电量: {device.battery.percent > 0 ? device.battery.percent : device.battery.level}%
+              {device.battery.isLowBattery ? ' 电量低' : ''}
             </Text>
           </View>
         )}
 
-        {!connectedDeviceId ? (
+        {!device.connectedDeviceId ? (
           <>
             <View style={styles.buttonContainer}>
-              {!isScanning ? (
-                <Button title="开始扫描" onPress={startScan} disabled={!isInitialized} />
+              {!device.isScanning ? (
+                <Button title="开始扫描" onPress={startScan} disabled={!device.isInitialized} />
               ) : (
                 <Button title="停止扫描" onPress={stopScan} />
               )}
             </View>
 
-            {savedDevices.length > 0 && (
+            {device.savedDevices.length > 0 && (
               <>
-                <Text style={styles.sectionTitle}>📱 历史设备 ({savedDevices.length})</Text>
+                <Text style={styles.sectionTitle}>📱 历史设备 ({device.savedDevices.length})</Text>
                 <FlatList
-                  data={savedDevices}
+                  data={device.savedDevices}
                   keyExtractor={(item) => item.id}
                   renderItem={renderSavedDevice}
                   style={styles.deviceList}
@@ -634,9 +209,9 @@ export default function HomeScreen() {
               </>
             )}
 
-            <Text style={styles.sectionTitle}>扫描到的设备 ({devices.length})</Text>
+            <Text style={styles.sectionTitle}>扫描到的设备 ({device.devices.length})</Text>
             <FlatList
-              data={devices}
+              data={device.devices}
               keyExtractor={(item) => item.id}
               renderItem={renderDevice}
               style={styles.deviceList}
@@ -646,204 +221,114 @@ export default function HomeScreen() {
         ) : (
           <>
             <View style={styles.connectedInfo}>
-              <Text style={styles.connectedText}>已连接: {connectedDeviceId}</Text>
+              <Text style={styles.connectedText}>已连接: {device.connectedDeviceId}</Text>
               <Button title="断开连接" onPress={disconnect} />
             </View>
 
-            {isDeviceReady && (
+            {device.isDeviceReady && (
               <View style={styles.testSection}>
                 <Text style={styles.sectionTitle}>📊 数据获取</Text>
 
                 <View style={styles.testButtonRow}>
-                  <Button
-                    title="获取睡眠数据"
-                    onPress={fetchSleepData}
-                  />
+                  <Button title="获取睡眠数据" onPress={fetchSleepData} />
+                </View>
+
+                <View style={styles.testButtonRow}>
+                  <Button title="获取运动数据" onPress={fetchSportData} />
                 </View>
 
                 <View style={styles.testButtonRow}>
                   <Button
-                    title="获取运动数据"
-                    onPress={fetchSportData}
-                  />
-                </View>
-
-                <View style={styles.testButtonRow}>
-                  <Button
-                    title={isLoadingData ? '获取中...' : '获取历史数据'}
+                    title={data.isLoadingData ? '获取中...' : '获取历史数据'}
                     onPress={fetchHistoryData}
-                    disabled={isLoadingData}
+                    disabled={data.isLoadingData}
                   />
                 </View>
               </View>
             )}
 
-            {isDeviceReady && (
+            {device.isDeviceReady && (
               <View style={styles.testSection}>
                 <Text style={styles.sectionTitle}>健康测试</Text>
 
-                <TestButtonGroup
-                  testType="heartRate"
-                  isTesting={isTesting}
-                  startTitle="心率测试"
-                  stopTitle="停止"
-                  onStart={() => startTest('heartRate')}
-                  onStop={() => stopTest('heartRate')}
-                />
-                {heartRateResult && (
-                  <TestResultBox>
-                    <TestResultItem label="状态" value={heartRateResult.state} />
-                    {heartRateResult.value && (
-                      <TestResultItem label="心率" value={String(heartRateResult.value)} unit="bpm" />
-                    )}
-                    {heartRateResult.progress !== undefined && (
-                      <TestResultItem label="进度" value={String(heartRateResult.progress)} />
-                    )}
-                  </TestResultBox>
-                )}
-
-                <TestButtonGroup
-                  testType="bloodPressure"
-                  isTesting={isTesting}
-                  startTitle="血压测试"
-                  stopTitle="停止"
-                  onStart={() => startTest('bloodPressure')}
-                  onStop={() => stopTest('bloodPressure')}
-                />
-                {bloodPressureResult && (
-                  <TestResultBox>
-                    <TestResultItem label="状态" value={bloodPressureResult.state} />
-                    {bloodPressureResult.progress !== undefined && (
-                      <TestResultItem label="进度" value={String(bloodPressureResult.progress)} />
-                    )}
-                    {bloodPressureResult.systolic && (
-                      <TestResultItem label="收缩压" value={String(bloodPressureResult.systolic)} unit="mmHg" />
-                    )}
-                    {bloodPressureResult.diastolic && (
-                      <TestResultItem label="舒张压" value={String(bloodPressureResult.diastolic)} unit="mmHg" />
-                    )}
-                    {bloodPressureResult.pulse && (
-                      <TestResultItem label="脉搏" value={String(bloodPressureResult.pulse)} unit="bpm" />
-                    )}
-                  </TestResultBox>
-                )}
-
-                <TestButtonGroup
-                  testType="bloodOxygen"
-                  isTesting={isTesting}
-                  startTitle="血氧测试"
-                  stopTitle="停止"
-                  onStart={() => startTest('bloodOxygen')}
-                  onStop={() => stopTest('bloodOxygen')}
-                />
-                {bloodOxygenResult && (
-                  <TestResultBox>
-                    <TestResultItem label="状态" value={bloodOxygenResult.state} />
-                    {bloodOxygenResult.value && (
-                      <TestResultItem label="血氧" value={String(bloodOxygenResult.value)} unit="%" />
-                    )}
-                  </TestResultBox>
-                )}
-
-                <TestButtonGroup
-                  testType="temperature"
-                  isTesting={isTesting}
-                  startTitle="体温测试"
-                  stopTitle="停止"
-                  onStart={() => startTest('temperature')}
-                  onStop={() => stopTest('temperature')}
-                />
-                {temperatureResult && (
-                  <TestResultBox>
-                    <TestResultItem label="状态" value={temperatureResult.state} />
-                    {temperatureResult.value && (
-                      <TestResultItem label="体温" value={String(temperatureResult.value.toFixed(1))} unit="℃" />
-                    )}
-                  </TestResultBox>
-                )}
-
-                <TestButtonGroup
-                  testType="stress"
-                  isTesting={isTesting}
-                  startTitle="压力测试"
-                  stopTitle="停止"
-                  onStart={() => startTest('stress')}
-                  onStop={() => stopTest('stress')}
-                />
-                {stressData && (
-                  <TestResultBox>
-                    <TestResultItem label="压力值" value={String(stressData.stress)} />
-                  </TestResultBox>
-                )}
-
-                <TestButtonGroup
-                  testType="bloodGlucose"
-                  isTesting={isTesting}
-                  startTitle="血糖测试"
-                  stopTitle="停止"
-                  onStart={() => startTest('bloodGlucose')}
-                  onStop={() => stopTest('bloodGlucose')}
-                />
-                {bloodGlucoseData && (
-                  <TestResultBox>
-                    <TestResultItem label="血糖值" value={String(bloodGlucoseData.glucose)} unit="mmol/L" />
-                  </TestResultBox>
-                )}
+                {testTypes.map((testType) => (
+                  <React.Fragment key={testType}>
+                    <TestButtonGroup
+                      testType={testType}
+                      isTesting={test.isTesting}
+                      startTitle={testTitles[testType]}
+                      stopTitle="停止"
+                      onStart={() => startTest(testType)}
+                      onStop={() => stopTest(testType)}
+                    />
+                    {renderTestResult(testType)}
+                  </React.Fragment>
+                ))}
               </View>
             )}
 
-            {isDeviceReady && !isTesting && (
+            {device.isDeviceReady && !test.isTesting && (
               <View style={styles.dataSection}>
                 <Text style={styles.sectionTitle}>📊 数据展示</Text>
 
                 <View style={styles.sportSection}>
                   <Text style={styles.subSectionTitle}>🏃 运动数据</Text>
-                  {sportStepData ? (
+                  {data.sportStepData ? (
                     <DataSummaryGrid>
-                      <DataSummaryItem 
-                        value={(sportStepData.stepCount || 0).toLocaleString()} 
-                        label="步数" 
+                      <DataSummaryItem
+                        value={(data.sportStepData.stepCount || 0).toLocaleString()}
+                        label="步数"
+                        icon="👟"
+                        color={Colors.primary}
                       />
-                      <DataSummaryItem 
-                        value={(sportStepData.distance || 0).toFixed(2)} 
-                        label="距离 (km)" 
+                      <DataSummaryItem
+                        value={(data.sportStepData.distance || 0).toFixed(2)}
+                        label="距离 (km)"
+                        icon="📏"
+                        color={Colors.success}
                       />
-                      <DataSummaryItem 
-                        value={(sportStepData.calories || 0).toFixed(0)} 
-                        label="卡路里 (kcal)" 
+                      <DataSummaryItem
+                        value={(data.sportStepData.calories || 0).toFixed(0)}
+                        label="卡路里 (kcal)"
+                        icon="🔥"
+                        color={Colors.danger}
                       />
-                      <DataSummaryItem 
-                        value={sportSummary.avgHeartRate || '--'} 
-                        label="平均心率" 
+                      <DataSummaryItem
+                        value={data.sportSummary.avgHeartRate || '--'}
+                        label="平均心率"
+                        icon="❤️"
+                        color={Colors.health.heart}
                       />
                     </DataSummaryGrid>
                   ) : (
-                    <EmptyDataBox 
-                      title="暂无运动数据" 
-                      hint="点击获取运动数据按钮读取设备数据" 
+                    <EmptyDataBox
+                      title="暂无运动数据"
+                      hint="点击获取运动数据按钮读取设备数据"
+                      icon="🏃"
                     />
                   )}
                 </View>
 
                 <View style={styles.sleepSection}>
                   <Text style={styles.subSectionTitle}>😴 睡眠数据</Text>
-                  {sleepDataList.length > 0 ? (
-                    sleepDataList.map((sleep, index) => (
+                  {data.sleepDataList.length > 0 ? (
+                    data.sleepDataList.map((sleep, index) => (
                       <SleepCard key={index} data={sleep} />
                     ))
                   ) : (
-                    <EmptyDataBox 
-                      title="暂无睡眠数据" 
-                      hint="点击获取睡眠数据按钮读取设备数据" 
+                    <EmptyDataBox
+                      title="暂无睡眠数据"
+                      hint="点击获取睡眠数据按钮读取设备数据"
+                      icon="😴"
                     />
                   )}
                 </View>
 
-                {originDataList.length > 0 && (
+                {data.originDataList.length > 0 && (
                   <View style={styles.halfHourSection}>
-                    <Text style={styles.subSectionTitle}>📈 半小时数据 ({originDataList.length} 条)</Text>
+                    <Text style={styles.subSectionTitle}>📈 半小时数据 ({data.originDataList.length} 条)</Text>
                     <FlatList
-                      data={originDataList.slice(-10).reverse()}
+                      data={data.originDataList.slice(-10).reverse()}
                       keyExtractor={(item, index) => `${item.time}-${index}`}
                       scrollEnabled={false}
                       renderItem={({ item }) => (
@@ -872,22 +357,23 @@ export default function HomeScreen() {
                         </View>
                       )}
                     />
-                    {originDataList.length > 10 && (
+                    {data.originDataList.length > 10 && (
                       <Text style={styles.moreDataHint}>仅显示最近 10 条数据</Text>
                     )}
                   </View>
                 )}
 
-                {sleepDataList.length === 0 && !sportStepData && originDataList.length === 0 && !isLoadingData && (
-                  <EmptyDataBox 
-                    title="暂无数据" 
-                    hint="点击上方按钮获取对应数据" 
+                {data.sleepDataList.length === 0 && !data.sportStepData && data.originDataList.length === 0 && !data.isLoadingData && (
+                  <EmptyDataBox
+                    title="暂无数据"
+                    hint="点击上方按钮获取对应数据"
+                    icon="📊"
                   />
                 )}
               </View>
             )}
 
-            {isTesting && (
+            {test.isTesting && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#007AFF" />
                 <Text style={styles.loadingText}>测试中，请保持佩戴...</Text>
@@ -903,42 +389,50 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.background,
   },
   scrollView: {
     flex: 1,
-    padding: 16,
+    padding: Spacing.lg,
   },
   title: {
-    fontSize: 24,
+    fontSize: FontSize.xxl,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: Spacing.xs,
     textAlign: 'center',
+    color: Colors.text.primary,
   },
   status: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
+    fontSize: FontSize.md,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.lg,
     textAlign: 'center',
   },
   batteryInfo: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  lowBattery: {
-    color: 'red',
-    marginLeft: 8,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.lg,
+    ...Shadows.sm,
   },
   buttonContainer: {
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
+  },
+  scanButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    ...Shadows.md,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: FontSize.xl,
     fontWeight: '600',
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.md,
+    color: Colors.text.primary,
   },
   deviceList: {
     flexGrow: 0,
@@ -947,172 +441,160 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    marginBottom: 8,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.sm,
+    ...Shadows.sm,
   },
   deviceInfo: {
     flex: 1,
   },
   deviceName: {
-    fontSize: 16,
+    fontSize: FontSize.lg,
     fontWeight: '500',
+    color: Colors.text.primary,
   },
   deviceMac: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: FontSize.sm,
+    color: Colors.text.secondary,
+    marginTop: 2,
   },
   deviceRssi: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: FontSize.sm,
+    color: Colors.text.tertiary,
+    marginTop: 2,
   },
   savedDeviceItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#e3f2fd',
-    borderRadius: 8,
-    marginBottom: 8,
+    padding: Spacing.md,
+    backgroundColor: Colors.card.sleep,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.sm,
     borderLeftWidth: 4,
-    borderLeftColor: '#2196F3',
+    borderLeftColor: Colors.primary,
+    ...Shadows.sm,
   },
   savedDeviceTime: {
-    fontSize: 11,
-    color: '#888',
+    fontSize: FontSize.xs,
+    color: Colors.text.tertiary,
     marginTop: 2,
   },
   savedDeviceButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: Spacing.sm,
   },
   connectedInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#e8f5e9',
-    borderRadius: 8,
-    marginBottom: 16,
+    padding: Spacing.md,
+    backgroundColor: Colors.successLight,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.lg,
+    ...Shadows.sm,
   },
   connectedText: {
-    fontSize: 14,
+    fontSize: FontSize.md,
     fontWeight: '500',
+    color: Colors.text.primary,
   },
   testSection: {
-    marginTop: 16,
+    marginTop: Spacing.lg,
+    backgroundColor: Colors.surface,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    ...Shadows.sm,
   },
   testButtonRow: {
-    marginVertical: 8,
-  },
-  resultBox: {
-    backgroundColor: '#f0f0f0',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 4,
-    marginBottom: 12,
-  },
-  resultRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  resultLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  resultValue: {
-    fontSize: 14,
-    fontWeight: '500',
+    marginVertical: Spacing.sm,
   },
   loadingContainer: {
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: Spacing.xl,
+    padding: Spacing.xl,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666',
+    marginTop: Spacing.md,
+    fontSize: FontSize.md,
+    color: Colors.text.secondary,
   },
   progressBarContainer: {
     width: '100%',
     height: 8,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 4,
-    marginTop: 12,
+    backgroundColor: Colors.divider,
+    borderRadius: BorderRadius.full,
+    marginTop: Spacing.md,
     overflow: 'hidden',
   },
   progressFill: {
     height: 8,
-    backgroundColor: '#007AFF',
-    borderRadius: 4,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.full,
   },
   progressText: {
-    fontSize: 12,
-    color: '#fff',
+    fontSize: FontSize.sm,
+    color: Colors.text.inverse,
     fontWeight: '500',
   },
   loadingDataContainer: {
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f0f8ff',
-    borderRadius: 12,
-    marginBottom: 16,
+    padding: Spacing.xl,
+    backgroundColor: Colors.card.sleep,
+    borderRadius: BorderRadius.xl,
+    marginBottom: Spacing.lg,
+    ...Shadows.md,
   },
   loadingDataText: {
-    marginTop: 12,
-    fontSize: 16,
+    marginTop: Spacing.md,
+    fontSize: FontSize.lg,
     fontWeight: '500',
-    color: '#007AFF',
+    color: Colors.primary,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#007AFF',
-    borderRadius: 4,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.full,
   },
   dataSection: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#f8f9f9',
-    borderRadius: 8,
+    marginTop: Spacing.lg,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    ...Shadows.sm,
   },
-  summaryGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    flexWrap: 'wrap',
-    marginBottom: 8,
+  sportSection: {
+    marginTop: Spacing.md,
   },
-  summaryItem: {
-    flex: 1,
-    minWidth: '45%',
-    alignItems: 'center',
-    padding: 8,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    margin: 4,
+  subSectionTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '600',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+    color: Colors.text.primary,
   },
-  summaryValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+  sleepSection: {
+    marginTop: Spacing.md,
   },
-  summaryLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+  halfHourSection: {
+    marginTop: Spacing.md,
   },
   dataRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 10,
-    backgroundColor: '#fff',
-    borderRadius: 6,
-    marginBottom: 6,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.divider,
   },
   dataTime: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: FontSize.sm,
+    color: Colors.text.secondary,
     flex: 1,
   },
   dataMetrics: {
@@ -1121,106 +603,19 @@ const styles = StyleSheet.create({
     flex: 2,
   },
   metricBadge: {
-    fontSize: 11,
-    color: '#333',
-    backgroundColor: '#e8e8e8',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    marginRight: 4,
+    fontSize: FontSize.xs,
+    color: Colors.text.primary,
+    backgroundColor: Colors.divider,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    marginRight: Spacing.xs,
     marginBottom: 2,
   },
   moreDataHint: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: FontSize.sm,
+    color: Colors.text.tertiary,
     textAlign: 'center',
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
-  dataSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  subSectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 12,
-    marginBottom: 8,
-    color: '#333',
-  },
-  emptyDataContainer: {
-    alignItems: 'center',
-    padding: 30,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-  },
-  emptyDataText: {
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '500',
-  },
-  emptyDataHint: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  emptyDataBox: {
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-  },
-  sleepSection: {
-    marginTop: 12,
-  },
-  sleepCard: {
-    backgroundColor: '#f0f4ff',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-  },
-  sleepHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  sleepTime: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
-  },
-  sleepScore: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  sleepStats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  sleepStatItem: {
-    width: '50%',
-    padding: 6,
-    alignItems: 'center',
-  },
-  sleepStatValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  sleepStatLabel: {
-    fontSize: 11,
-    color: '#666',
-    marginTop: 2,
-  },
-  sportSection: {
-    marginTop: 12,
-  },
-  halfHourSection: {
-    marginTop: 12,
+    marginTop: Spacing.sm,
   },
 });

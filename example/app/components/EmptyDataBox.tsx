@@ -1,36 +1,52 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Colors, Spacing, BorderRadius, FontSize } from '../theme';
 
 interface EmptyDataBoxProps {
   title: string;
   hint: string;
+  icon?: string;
 }
 
-export const EmptyDataBox: React.FC<EmptyDataBoxProps> = ({ title, hint }) => {
+export const EmptyDataBox: React.FC<EmptyDataBoxProps> = ({ 
+  title, 
+  hint,
+  icon = '📭',
+}) => {
   return (
-    <View style={styles.emptyDataBox}>
-      <Text style={styles.emptyDataText}>{title}</Text>
-      <Text style={styles.emptyDataHint}>{hint}</Text>
+    <View style={styles.container}>
+      <Text style={styles.icon}>{icon}</Text>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.hint}>{hint}</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  emptyDataBox: {
+  container: {
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+    padding: Spacing.xxl,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
   },
-  emptyDataText: {
-    fontSize: 16,
-    color: '#666',
+  icon: {
+    fontSize: 40,
+    marginBottom: Spacing.md,
+    opacity: 0.8,
+  },
+  title: {
+    fontSize: FontSize.lg,
+    color: Colors.text.primary,
     fontWeight: '500',
+    marginBottom: Spacing.xs,
   },
-  emptyDataHint: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 8,
+  hint: {
+    fontSize: FontSize.sm,
+    color: Colors.text.tertiary,
     textAlign: 'center',
+    lineHeight: 20,
   },
 });

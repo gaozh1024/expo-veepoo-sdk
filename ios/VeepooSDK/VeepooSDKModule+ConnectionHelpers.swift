@@ -43,7 +43,7 @@ extension VeepooSDKModule {
 
       case 0:
         self.sendEvent(DEVICE_CONNECT_STATUS, ["deviceId": deviceId, "status": "bluetoothOff"])
-        promise.reject("BLUETOOTH_OFF", "Bluetooth is powered off")
+        promise.reject("BLUETOOTH_NOT_ENABLED", "Bluetooth is powered off")
 
       case 1:
         self.sendEvent(DEVICE_CONNECT_STATUS, [
@@ -61,7 +61,7 @@ extension VeepooSDKModule {
 
       default:
         self.sendEvent(DEVICE_CONNECT_STATUS, ["deviceId": deviceId, "status": "unknown", "code": connectState.rawValue])
-        promise.reject("UNKNOWN_ERROR", "Unknown connection error: \(connectState.rawValue)")
+        promise.reject("UNKNOWN", "Unknown connection error: \(connectState.rawValue)")
       }
     }
     #endif
@@ -121,6 +121,7 @@ extension VeepooSDKModule {
        let pendingPromise = self.pendingConnectPromise,
        let pendingPassword = self.pendingConnectPassword,
        (pendingId == exportId || pendingId == uuid) {
+      let savedIs24Hour = self.pendingConnectIs24Hour
       self.pendingConnectDeviceId = nil
       self.pendingConnectPromise = nil
       self.pendingConnectPassword = nil
@@ -135,7 +136,7 @@ extension VeepooSDKModule {
         model: peripheralModel,
         deviceId: exportId,
         password: pendingPassword,
-        is24Hour: self.pendingConnectIs24Hour,
+        is24Hour: savedIs24Hour,
         promise: pendingPromise
       )
     }

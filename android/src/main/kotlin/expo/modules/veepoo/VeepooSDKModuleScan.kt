@@ -26,7 +26,7 @@ fun ModuleDefinition.defineScan(module: VeepooSDKModule) {
     }
 
     if (!module.isBluetoothEnabled()) {
-      promise.reject("BLUETOOTH_OFF", "Bluetooth is powered off", null)
+      promise.reject("BLUETOOTH_NOT_ENABLED", "Bluetooth is powered off", null)
       return@AsyncFunction
     }
     
