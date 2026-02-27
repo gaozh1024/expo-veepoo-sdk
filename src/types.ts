@@ -62,104 +62,107 @@ export interface BluetoothStatus {
   pendingScanStart: boolean;
 }
 
-export type PasswordStatus = 'CHECK_SUCCESS' | 'CHECK_FAIL' | 'NOT_SET' | 'UNKNOWN';
+export type PasswordStatus = 'CHECK_SUCCESS' | 'CHECK_FAIL' | 'NOT_SET' | 'SUCCESS' | 'FAILED' | 'UNKNOWN';
 
 export interface PasswordData {
   status: PasswordStatus;
   password: string;
-  deviceNumber: number;
-  deviceVersion: string;
-  deviceTestVersion: string;
-  isHaveDrinkData: boolean;
-  isOpenNightTurnWrist: FunctionStatus;
-  findPhoneFunction: FunctionStatus;
-  wearDetectFunction: FunctionStatus;
+  deviceNumber?: string;
+  deviceVersion?: string;
+  deviceTestVersion?: string;
+  isHaveDrinkData?: boolean;
+  isOpenNightTurnWrist?: FunctionStatus;
+  findPhoneFunction?: FunctionStatus;
+  wearDetectFunction?: FunctionStatus;
 }
 
 export type FunctionStatus = 'unsupported' | 'support' | 'open' | 'close' | 'unknown';
 
 export interface DeviceFunctionPackage1 {
-  bloodPressure: FunctionStatus;
-  drinking: FunctionStatus;
-  sedentaryRemind: FunctionStatus;
-  heartRateWarning: FunctionStatus;
-  weChatSport: FunctionStatus;
-  camera: FunctionStatus;
-  fatigue: FunctionStatus;
-  spoH: FunctionStatus;
-  spo2HAdjustment: FunctionStatus;
-  spoHBreathBreak: FunctionStatus;
-  woman: FunctionStatus;
-  alarm: FunctionStatus;
-  newCalcSport: FunctionStatus;
-  ambulatoryBPAdjustment: FunctionStatus;
-  screenLight: FunctionStatus;
-  heartRateDetect: FunctionStatus;
-  nightTurnSetting: FunctionStatus;
-  textAlarm: FunctionStatus;
+  bloodPressure?: FunctionStatus;
+  drinking?: FunctionStatus;
+  sedentaryRemind?: FunctionStatus;
+  heartRateWarning?: FunctionStatus;
+  weChatSport?: FunctionStatus;
+  camera?: FunctionStatus;
+  fatigue?: FunctionStatus;
+  spoH?: FunctionStatus;
+  spo2HAdjustment?: FunctionStatus;
+  spoHBreathBreak?: FunctionStatus;
+  woman?: FunctionStatus;
+  alarm?: FunctionStatus;
+  newCalcSport?: FunctionStatus;
+  ambulatoryBPAdjustment?: FunctionStatus;
+  screenLight?: FunctionStatus;
+  heartRateDetect?: FunctionStatus;
+  nightTurnSetting?: FunctionStatus;
+  textAlarm?: FunctionStatus;
+  temperatureFunction?: FunctionStatus;
 }
 
 export interface DeviceFunctionPackage2 {
-  countDown: FunctionStatus;
-  sportModelFunction: FunctionStatus;
-  hidFunction: FunctionStatus;
-  screenStyleFunction: FunctionStatus;
-  breathFunction: FunctionStatus;
-  hrvFunction: FunctionStatus;
-  weatherFunction: FunctionStatus;
-  screenLightTime: FunctionStatus;
-  precisionSleep: FunctionStatus;
-  ecgFunction: FunctionStatus;
-  multSportMode: FunctionStatus;
-  lowPower: FunctionStatus;
-  sleepTag: number;
-  watchDataDayNumber: number;
-  contactMsgLength: number;
-  allMsgLength: number;
-  sportModelDay: number;
-  screenstyle: number;
-  weatherStyle: number;
-  originProtocolVersion: number;
-  ecgType: number;
+  countDown?: FunctionStatus;
+  sportModelFunction?: FunctionStatus;
+  hidFunction?: FunctionStatus;
+  screenStyleFunction?: FunctionStatus;
+  breathFunction?: FunctionStatus;
+  hrvFunction?: FunctionStatus;
+  weatherFunction?: FunctionStatus;
+  screenLightTime?: FunctionStatus;
+  precisionSleep?: FunctionStatus;
+  ecgFunction?: FunctionStatus;
+  multSportMode?: FunctionStatus;
+  lowPower?: FunctionStatus;
+  sleepTag?: number;
+  watchDataDayNumber?: number;
+  contactMsgLength?: number;
+  allMsgLength?: number;
+  sportModelDay?: number;
+  screenstyle?: number;
+  weatherStyle?: number;
+  originProtocolVersion?: number;
+  ecgType?: number;
 }
 
 export interface DeviceFunctionPackage3 {
-  bigDataTranType: number;
-  watchUiServerCount: number;
-  watchUiCustomCount: number;
-  temperatureFunction: FunctionStatus;
-  temperatureType: number;
-  cpuType: number;
-  stressFunction: FunctionStatus;
-  stressType: number;
-  contactFunction: FunctionStatus;
-  contactType: number;
-  musicStyle: number;
-  findDeviceByPhoneFunction: FunctionStatus;
-  agpsFunction: FunctionStatus;
-  bloodGlucoseTag: number;
-  bloodGlucose: number;
-  bloodGlucoseAdjusting: FunctionStatus;
-  bloodGlucoseMultipleAdjusting: FunctionStatus;
-  bloodGlucoseRiskAssessment: FunctionStatus;
+  bigDataTranType?: number;
+  watchUiServerCount?: number;
+  watchUiCustomCount?: number;
+  temperatureFunction?: FunctionStatus;
+  temperatureType?: number;
+  cpuType?: number;
+  stressFunction?: FunctionStatus;
+  stressType?: number;
+  contactFunction?: FunctionStatus;
+  contactType?: number;
+  musicStyle?: number;
+  findDeviceByPhoneFunction?: FunctionStatus;
+  agpsFunction?: FunctionStatus;
+  bloodGlucoseTag?: number;
+  bloodGlucose?: number;
+  bloodGlucoseAdjusting?: FunctionStatus;
+  bloodGlucoseMultipleAdjusting?: FunctionStatus;
+  bloodGlucoseRiskAssessment?: FunctionStatus;
+  bloodComponent?: FunctionStatus;
+  bodyComponent?: FunctionStatus;
 }
 
 export interface DeviceFunctionPackage4 {
-  bloodComponent: FunctionStatus;
-  bloodComponentSingleCalibration: FunctionStatus;
-  bodyComponent: FunctionStatus;
-  worldClock: FunctionStatus;
-  autoMeasure: FunctionStatus;
-  temperatureAlarm: FunctionStatus;
-  wallet: FunctionStatus;
-  postcard: FunctionStatus;
-  gameSetting: FunctionStatus;
-  aiQA: FunctionStatus;
-  aiDial: FunctionStatus;
-  distanceCalorieGoal: FunctionStatus;
-  videoDial: FunctionStatus;
-  photoAlbum: FunctionStatus;
-  miniCheckup: FunctionStatus;
+  bloodComponent?: FunctionStatus;
+  bloodComponentSingleCalibration?: FunctionStatus;
+  bodyComponent?: FunctionStatus;
+  worldClock?: FunctionStatus;
+  autoMeasure?: FunctionStatus;
+  temperatureAlarm?: FunctionStatus;
+  wallet?: FunctionStatus;
+  postcard?: FunctionStatus;
+  gameSetting?: FunctionStatus;
+  aiQA?: FunctionStatus;
+  aiDial?: FunctionStatus;
+  distanceCalorieGoal?: FunctionStatus;
+  videoDial?: FunctionStatus;
+  photoAlbum?: FunctionStatus;
+  miniCheckup?: FunctionStatus;
 }
 
 export interface DeviceFunctionPackage5 {
@@ -234,11 +237,18 @@ export interface TemperatureData {
 export interface StressData {
   stress: number;
   timestamp: number;
+  progress?: number;
+  status?: string;
+  isEnd?: boolean;
 }
 
 export interface BloodGlucoseData {
-  glucose: number;
-  timestamp: number;
+  glucose?: number;
+  progress?: number;
+  level?: string | number;
+  status?: string;
+  timestamp?: number;
+  isEnd?: boolean;
 }
 
 export interface SleepDataItem {
@@ -470,19 +480,19 @@ export type VeepooEvent =
 
 export interface VeepooEventPayload {
   deviceFound: { device: VeepooDevice; timestamp: number };
-  deviceConnected: { deviceId: string; deviceVersion?: string; deviceNumber?: string };
+  deviceConnected: { deviceId: string; deviceVersion?: string; deviceNumber?: string; isOadModel?: boolean };
   deviceDisconnected: { deviceId: string };
   deviceConnectStatus: { deviceId: string; status: ConnectionStatus; code?: number };
   deviceReady: { deviceId: string; isOadModel?: boolean };
   bluetoothStateChanged: BluetoothStatus;
-  deviceFunction: { deviceId: string; functions: DeviceFunctions };
+  deviceFunction: { deviceId: string; functions?: DeviceFunctions; data?: DeviceFunctions };
   deviceVersion: { deviceId: string; version: DeviceVersion };
   passwordData: { deviceId: string; data: PasswordData };
   socialMsgData: { deviceId: string; data: SocialMsgData };
   readOriginProgress: { deviceId: string; progress: ReadOriginProgress };
   readOriginComplete: { deviceId: string; success: boolean };
   originHalfHourData: { deviceId: string; data: HalfHourData };
-  sleepData: { deviceId: string; date: string; data: SleepData[] };
+  sleepData: { deviceId: string; date: string; data: SleepData };
   sportStepData: { deviceId: string; date: string; data: SportStepData };
   heartRateTestResult: { deviceId: string; result: HeartRateTestResult };
   bloodPressureTestResult: { deviceId: string; result: BloodPressureTestResult };

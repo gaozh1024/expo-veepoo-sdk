@@ -1,0 +1,27 @@
+package expo.modules.veepoo
+
+import android.util.Log
+import com.veepoo.protocol.VPOperateManager
+import expo.modules.kotlin.Promise
+import expo.modules.kotlin.modules.ModuleDefinition
+
+// SDK 初始化
+fun ModuleDefinition.defineInitialization(module: VeepooSDKModule) {
+  AsyncFunction("init") { promise: Promise ->
+    try {
+      val manager = VPOperateManager.getInstance()
+      if (manager == null) {
+        promise.reject("SDK_NOT_AVAILABLE", "Failed to initialize Veepoo SDK", null)
+        return@AsyncFunction
+      }
+      
+      manager.init(module.context)
+      module.isInitialized = true
+      Log.d("VeepooSDKModule", "Veepoo SDK initialized successfully")
+      promise.resolve(null)
+    } catch (e: Exception) {
+      Log.e("VeepooSDKModule", "Error initializing Veepoo SDK", e)
+      promise.reject("INIT_ERROR", e.message, e)
+    }
+  }
+}

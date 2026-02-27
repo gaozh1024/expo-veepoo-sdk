@@ -1,0 +1,31 @@
+import ExpoModulesCore
+
+/// 事件定义与导出
+extension VeepooSDKModule {
+  func defineEvents() {
+    Events(
+      DEVICE_FOUND,
+      DEVICE_CONNECTED,
+      DEVICE_DISCONNECTED,
+      DEVICE_CONNECT_STATUS,
+      DEVICE_READY,
+      BLUETOOTH_STATE_CHANGED,
+      DEVICE_FUNCTION,
+      DEVICE_VERSION,
+      PASSWORD_DATA,
+      HEART_RATE_TEST_RESULT,
+      BLOOD_PRESSURE_TEST_RESULT,
+      BLOOD_OXYGEN_TEST_RESULT,
+      TEMPERATURE_TEST_RESULT,
+      STRESS_DATA,
+      BLOOD_GLUCOSE_DATA,
+      BATTERY_DATA,
+      READ_ORIGIN_PROGRESS,
+      READ_ORIGIN_COMPLETE,
+      ORIGIN_HALF_HOUR_DATA,
+      SLEEP_DATA,
+      SPORT_STEP_DATA,
+      ERROR
+    )
+  }
+}
