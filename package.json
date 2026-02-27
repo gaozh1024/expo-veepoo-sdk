@@ -27,7 +27,7 @@
   "expo": {
     "plugin": "./build/plugin/index.js"
   },
-"peerDependencies": {
+  "peerDependencies": {
     "expo": "*",
     "expo-modules-core": ">=1.0.0",
     "react": "*",
