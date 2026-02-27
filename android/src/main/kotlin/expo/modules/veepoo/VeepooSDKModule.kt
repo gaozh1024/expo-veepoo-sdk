@@ -38,30 +38,3 @@ class VeepooSDKModule : Module() {
     defineLifecycle(this@VeepooSDKModule)
   }
 }
-  
-  var isScanning = false
-  var connectedDeviceId: String? = null
-  var isInitialized = false
-  var isPressureMeasuring = false
-  val mainHandler = Handler(Looper.getMainLooper())
-  val cachedDeviceFunctions = mutableMapOf<String, Map<String, Any?>>()
-  var cachedDeviceVersion: String = ""
-  var cachedDeviceNumber: String = ""
-  val context: Context
-    get() = appContext.reactContext
-      ?: appContext.currentActivity?.applicationContext
-      ?: throw IllegalStateException("Unable to get application context")
-
-  override fun definition() = ModuleDefinition {
-    Name("VeepooSDK")
-    defineEvents()
-    defineInitialization(this@VeepooSDKModule)
-    definePermissions(this@VeepooSDKModule)
-    defineScan(this@VeepooSDKModule)
-    defineConnection(this@VeepooSDKModule)
-    defineReadData(this@VeepooSDKModule)
-    defineWriteData(this@VeepooSDKModule)
-    defineTests(this@VeepooSDKModule)
-    defineLifecycle(this@VeepooSDKModule)
-  }
-}

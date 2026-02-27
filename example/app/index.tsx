@@ -10,40 +10,31 @@ import {
   ActivityIndicator,
   PermissionsAndroid,
   Platform,
-  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import VeepooSDK, {
   VeepooDevice,
   VeepooError,
+  BatteryInfo,
+  ReadOriginProgress,
+  HalfHourData,
+  SportStepData,
   HeartRateTestResult,
   BloodPressureTestResult,
   BloodOxygenTestResult,
   TemperatureTestResult,
   StressData,
   BloodGlucoseData,
-  BatteryInfo,
-  ReadOriginProgress,
-  HalfHourData,
-  SleepData,
-  SportStepData,
 } from '@gaozh1024/expo-veepoo-sdk';
 import { TestButtonGroup } from './components/TestButtonGroup';
 import { TestResultBox, TestResultItem } from './components/TestResultBox';
 import { EmptyDataBox } from './components/EmptyDataBox';
 import { DataSummaryGrid, DataSummaryItem } from './components/DataSummary';
 import { SleepCard } from './components/SleepCard';
+import type { SavedDevice, SleepDataItem, TestType } from './types';
 
 const SAVED_DEVICES_KEY = '@veepoo_saved_devices';
-
-interface SavedDevice {
-  id: string;
-  name: string;
-  mac?: string;
-  uuid?: string;
-  lastConnected: number;
-}
 
 export default function HomeScreen() {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -67,7 +58,7 @@ export default function HomeScreen() {
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [loadDataProgress, setLoadDataProgress] = useState(0);
   const [originDataList, setOriginDataList] = useState<HalfHourData[]>([]);
-  const [sleepDataList, setSleepDataList] = useState<any[]>([]);
+  const [sleepDataList, setSleepDataList] = useState<SleepDataItem[]>([]);
   const [sportStepData, setSportStepData] = useState<SportStepData | null>(null);
   
   const sportSummary = React.useMemo(() => {
@@ -421,7 +412,8 @@ export default function HomeScreen() {
       const sleepData = await VeepooSDK.readSleepData();
       console.log('[fetchSleepData] 睡眠数据:', sleepData);
       if (sleepData && sleepData.length > 0) {
-        setSleepDataList(sleepData);
+        const allItems = sleepData.flatMap(d => d.items);
+        setSleepDataList(allItems);
         setStatus('睡眠数据获取成功');
       } else {
         setStatus('暂无睡眠数据');
@@ -837,17 +829,7 @@ export default function HomeScreen() {
                   <Text style={styles.subSectionTitle}>😴 睡眠数据</Text>
                   {sleepDataList.length > 0 ? (
                     sleepDataList.map((sleep, index) => (
-                      <SleepCard
-                        key={index}
-                        sleepTime={sleep.sleepTime}
-                        wakeTime={sleep.wakeTime}
-                        sleepLevel={sleep.sleepLevel}
-                        deepSleepDuration={sleep.deepSleepDuration}
-                        lightSleepDuration={sleep.lightSleepDuration}
-                        totalSleepHours={sleep.totalSleepHours}
-                        totalSleepMinutes={sleep.totalSleepMinutes}
-                        wakeUpCount={sleep.wakeUpCount}
-                      />
+                      <SleepCard key={index} data={sleep} />
                     ))
                   ) : (
                     <EmptyDataBox 

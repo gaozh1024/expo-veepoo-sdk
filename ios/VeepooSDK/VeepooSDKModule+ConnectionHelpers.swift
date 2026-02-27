@@ -148,7 +148,21 @@ extension VeepooSDKModule {
 
     manager.is24HourFormat = is24Hour
 
-    manager.veepooSDKSynchronousPassword(with: SynchronousPasswordType(rawValue: 0)!, password: password) { [weak self] result in
+    // 安全解包 SynchronousPasswordType，rawValue 0 表示默认密码类型
+    guard let passwordType = SynchronousPasswordType(rawValue: 0) else {
+      self.sendEvent(PASSWORD_DATA, [
+        "deviceId": deviceId,
+        "data": [
+          "status": "FAILED",
+          "password": password,
+          "deviceNumber": "",
+          "deviceVersion": ""
+        ]
+      ])
+      return
+    }
+
+    manager.veepooSDKSynchronousPassword(with: passwordType, password: password) { [weak self] result in
       guard let self = self else { return }
 
       let success = (result.rawValue == 1) || (result.rawValue == 6)

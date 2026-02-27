@@ -126,7 +126,12 @@ extension VeepooSDKModule {
 
       manager.is24HourFormat = is24Hour
 
-      manager.veepooSDKSynchronousPassword(with: SynchronousPasswordType(rawValue: 0)!, password: password) { result in
+      guard let passwordType = SynchronousPasswordType(rawValue: 0) else {
+        promise.reject("PASSWORD_TYPE_ERROR", "Invalid password type")
+        return
+      }
+
+      manager.veepooSDKSynchronousPassword(with: passwordType, password: password) { result in
         let success = (result.rawValue == 1) || (result.rawValue == 6)
         let status = success ? "SUCCESS" : "FAILED"
 

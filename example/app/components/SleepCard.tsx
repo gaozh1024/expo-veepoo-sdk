@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import type { SleepDataItem } from '../types';
 
 interface SleepStatItemProps {
   value: string | number;
   label: string;
 }
 
-export const SleepStatItem: React.FC<SleepStatItemProps> = ({ value, label }) => {
+const SleepStatItem: React.FC<SleepStatItemProps> = ({ value, label }) => {
   return (
     <View style={styles.sleepStatItem}>
       <Text style={styles.sleepStatValue}>{value}</Text>
@@ -16,42 +17,38 @@ export const SleepStatItem: React.FC<SleepStatItemProps> = ({ value, label }) =>
 };
 
 interface SleepCardProps {
-  sleepTime: string;
-  wakeTime: string;
-  sleepLevel: number;
-  deepSleepDuration: string | number;
-  lightSleepDuration: string | number;
-  totalSleepHours: number;
-  totalSleepMinutes: number;
-  wakeUpCount: number;
+  data: SleepDataItem;
 }
 
-export const SleepCard: React.FC<SleepCardProps> = ({
-  sleepTime,
-  wakeTime,
-  sleepLevel,
-  deepSleepDuration,
-  lightSleepDuration,
-  totalSleepHours,
-  totalSleepMinutes,
-  wakeUpCount,
-}) => {
+const formatDuration = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours}h ${mins}m`;
+};
+
+export const SleepCard: React.FC<SleepCardProps> = ({ data }) => {
   return (
     <View style={styles.sleepCard}>
       <View style={styles.sleepHeader}>
         <Text style={styles.sleepTime}>
-          {sleepTime} → {wakeTime}
+          {data.sleepTime} → {data.wakeTime}
         </Text>
-        <Text style={styles.sleepScore}>评分: {sleepLevel}/5</Text>
+        <Text style={styles.sleepScore}>评分: {data.sleepQuality}/5</Text>
       </View>
       <View style={styles.sleepStats}>
-        <SleepStatItem value={deepSleepDuration} label="深睡(小时)" />
-        <SleepStatItem value={lightSleepDuration} label="浅睡(小时)" />
         <SleepStatItem 
-          value={`${totalSleepHours}h ${totalSleepMinutes}m`} 
+          value={formatDuration(data.deepSleepMinutes)} 
+          label="深睡" 
+        />
+        <SleepStatItem 
+          value={formatDuration(data.lightSleepMinutes)} 
+          label="浅睡" 
+        />
+        <SleepStatItem 
+          value={formatDuration(data.totalSleepMinutes)} 
           label="总睡眠" 
         />
-        <SleepStatItem value={wakeUpCount} label="清醒次数" />
+        <SleepStatItem value={data.wakeUpCount} label="清醒次数" />
       </View>
     </View>
   );
