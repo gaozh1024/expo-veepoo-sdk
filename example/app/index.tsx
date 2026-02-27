@@ -29,6 +29,11 @@ import VeepooSDK, {
   SleepData,
   SportStepData,
 } from '@gaozh1024/expo-veepoo-sdk';
+import { TestButtonGroup } from './components/TestButtonGroup';
+import { TestResultBox, TestResultItem } from './components/TestResultBox';
+import { EmptyDataBox } from './components/EmptyDataBox';
+import { DataSummaryGrid, DataSummaryItem } from './components/DataSummary';
+import { SleepCard } from './components/SleepCard';
 
 const SAVED_DEVICES_KEY = '@veepoo_saved_devices';
 
@@ -62,7 +67,7 @@ export default function HomeScreen() {
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [loadDataProgress, setLoadDataProgress] = useState(0);
   const [originDataList, setOriginDataList] = useState<HalfHourData[]>([]);
-  const [sleepDataList, setSleepDataList] = useState<SleepData[]>([]);
+  const [sleepDataList, setSleepDataList] = useState<any[]>([]);
   const [sportStepData, setSportStepData] = useState<SportStepData | null>(null);
   
   const sportSummary = React.useMemo(() => {
@@ -230,9 +235,8 @@ export default function HomeScreen() {
     VeepooSDK.on('deviceReady', (payload) => {
       console.log('[deviceReady]', JSON.stringify(payload, null, 2));
       setIsDeviceReady(true);
-      setStatus('设备准备就绪，正在读取历史数据...');
+      setStatus('设备准备就绪');
       readBattery();
-      startReadOriginData();
     });
 
     VeepooSDK.on('batteryData', (payload) => {
@@ -406,83 +410,38 @@ export default function HomeScreen() {
     }
   };
 
-  const startReadOriginData = async () => {
+  const fetchSleepData = async () => {
+    if (!isDeviceReady) {
+      Alert.alert('提示', '设备未准备就绪');
+      return;
+    }
     try {
-      console.log('[startReadOriginData] 开始读取历史数据...');
-      setIsLoadingData(true);
-      setLoadDataProgress(0);
-      setOriginDataList([]);
-      setSleepDataList([]);
-      setSportStepData(null);
-      
-      await VeepooSDK.startReadOriginData();
-      
+      console.log('[fetchSleepData] 获取睡眠数据...');
+      setStatus('正在获取睡眠数据...');
       const sleepData = await VeepooSDK.readSleepData();
-      console.log('[readSleepData] 睡眠数据:', sleepData);
+      console.log('[fetchSleepData] 睡眠数据:', sleepData);
       if (sleepData && sleepData.length > 0) {
         setSleepDataList(sleepData);
-      }
-      
-      const sportData = await VeepooSDK.readSportStepData();
-      console.log('[readSportStepData] 运动数据:', sportData);
-      if (sportData) {
-        setSportStepData(sportData);
-      }
-      
-      console.log('[startReadOriginData] 读取历史数据命令已发送');
-    } catch (error) {
-      console.error('[startReadOriginData] 读取历史数据失败:', error);
-      setIsLoadingData(false);
-    }
-  };
-
-  const syncAllData = async () => {
-    try {
-      console.log('[syncAllData] 开始同步所有数据...');
-      setIsLoadingData(true);
-      setLoadDataProgress(0);
-      setOriginDataList([]);
-      setSleepDataList([]);
-      setSportStepData(null);
-      setStatus('正在同步设备数据...');
-      
-      const success = await VeepooSDK.readDeviceAllData();
-      console.log('[syncAllData] 同步结果:', success);
-      
-      if (success) {
-        setStatus('数据同步完成，正在读取...');
-        
-        const sleepData = await VeepooSDK.readSleepData();
-        console.log('[syncAllData] 睡眠数据:', sleepData);
-        if (sleepData && sleepData.length > 0) {
-          setSleepDataList(sleepData);
-        }
-        
-        const sportData = await VeepooSDK.readSportStepData();
-        console.log('[syncAllData] 运动数据:', sportData);
-        if (sportData) {
-          setSportStepData(sportData);
-        }
-        
-        setStatus('数据读取完成');
+        setStatus('睡眠数据获取成功');
       } else {
-        setStatus('数据同步失败');
+        setStatus('暂无睡眠数据');
       }
     } catch (error) {
-      console.error('[syncAllData] 同步数据失败:', error);
-      setStatus(`同步失败: ${error}`);
-    } finally {
-      setIsLoadingData(false);
+      console.error('[fetchSleepData] 获取睡眠数据失败:', error);
+      setStatus(`获取失败: ${error}`);
     }
   };
 
-  const refreshSportData = async () => {
+  const fetchSportData = async () => {
+    if (!isDeviceReady) {
+      Alert.alert('提示', '设备未准备就绪');
+      return;
+    }
     try {
-      console.log('[refreshSportData] 重新获取运动数据...');
+      console.log('[fetchSportData] 获取运动数据...');
       setStatus('正在获取运动数据...');
-      
       const sportData = await VeepooSDK.readSportStepData();
-      console.log('[refreshSportData] 运动数据:', sportData);
+      console.log('[fetchSportData] 运动数据:', sportData);
       if (sportData) {
         setSportStepData(sportData);
         setStatus('运动数据获取成功');
@@ -490,8 +449,31 @@ export default function HomeScreen() {
         setStatus('暂无运动数据');
       }
     } catch (error) {
-      console.error('[refreshSportData] 获取运动数据失败:', error);
+      console.error('[fetchSportData] 获取运动数据失败:', error);
       setStatus(`获取失败: ${error}`);
+    }
+  };
+
+  const fetchHistoryData = async () => {
+    if (!isDeviceReady) {
+      Alert.alert('提示', '设备未准备就绪');
+      return;
+    }
+    try {
+      console.log('[fetchHistoryData] 获取历史数据...');
+      setStatus('正在获取历史数据...');
+      setIsLoadingData(true);
+      setLoadDataProgress(0);
+      setOriginDataList([]);
+      
+      await VeepooSDK.startReadOriginData();
+      
+      setStatus('历史数据获取成功');
+    } catch (error) {
+      console.error('[fetchHistoryData] 获取历史数据失败:', error);
+      setStatus(`获取失败: ${error}`);
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
@@ -610,15 +592,7 @@ export default function HomeScreen() {
     [connectedDeviceId]
   );
 
-  const renderTestResult = (label: string, value: string | null | undefined, unit: string = '') => {
-    if (value === null || value === undefined) return <></>;
-    return (
-      <View style={styles.resultRow}>
-        <Text style={styles.resultLabel}>{label}:</Text>
-        <Text style={styles.resultValue}>{value} {unit}</Text>
-      </View>
-    );
-  };
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -686,17 +660,26 @@ export default function HomeScreen() {
 
             {isDeviceReady && (
               <View style={styles.testSection}>
-                <Text style={styles.sectionTitle}>📊 健康数据</Text>
-                
+                <Text style={styles.sectionTitle}>📊 数据获取</Text>
+
                 <View style={styles.testButtonRow}>
                   <Button
-                    title={isLoadingData ? '同步中...' : '同步设备数据'}
-                    onPress={syncAllData}
-                    disabled={isLoadingData}
+                    title="获取睡眠数据"
+                    onPress={fetchSleepData}
                   />
+                </View>
+
+                <View style={styles.testButtonRow}>
                   <Button
-                    title="刷新数据"
-                    onPress={startReadOriginData}
+                    title="获取运动数据"
+                    onPress={fetchSportData}
+                  />
+                </View>
+
+                <View style={styles.testButtonRow}>
+                  <Button
+                    title={isLoadingData ? '获取中...' : '获取历史数据'}
+                    onPress={fetchHistoryData}
                     disabled={isLoadingData}
                   />
                 </View>
@@ -707,168 +690,146 @@ export default function HomeScreen() {
               <View style={styles.testSection}>
                 <Text style={styles.sectionTitle}>健康测试</Text>
 
-                <View style={styles.testButtonRow}>
-                  <Button
-                    title={isTesting === 'heartRate' ? '测试中...' : '心率测试'}
-                    onPress={() => startTest('heartRate')}
-                    disabled={isTesting !== null && isTesting !== 'heartRate'}
-                  />
-                  <Button
-                    title={isTesting === 'heartRate' ? '停止' : '停止'}
-                    onPress={() => stopTest('heartRate')}
-                    disabled={isTesting !== 'heartRate'}
-                  />
-                </View>
+                <TestButtonGroup
+                  testType="heartRate"
+                  isTesting={isTesting}
+                  startTitle="心率测试"
+                  stopTitle="停止"
+                  onStart={() => startTest('heartRate')}
+                  onStop={() => stopTest('heartRate')}
+                />
                 {heartRateResult && (
-                  <View style={styles.resultBox}>
-                    {renderTestResult('状态', heartRateResult.state)}
-                    {heartRateResult.value && renderTestResult('心率', String(heartRateResult.value), 'bpm')}
-                    {heartRateResult.progress !== undefined && renderTestResult('进度', String(heartRateResult.progress))}
-                  </View>
+                  <TestResultBox>
+                    <TestResultItem label="状态" value={heartRateResult.state} />
+                    {heartRateResult.value && (
+                      <TestResultItem label="心率" value={String(heartRateResult.value)} unit="bpm" />
+                    )}
+                    {heartRateResult.progress !== undefined && (
+                      <TestResultItem label="进度" value={String(heartRateResult.progress)} />
+                    )}
+                  </TestResultBox>
                 )}
 
-                <View style={styles.testButtonRow}>
-                  <Button
-                    title={isTesting === 'bloodPressure' ? '测试中...' : '血压测试'}
-                    onPress={() => startTest('bloodPressure')}
-                    disabled={isTesting !== null}
-                  />
-                  <Button
-                    title={isTesting === 'bloodPressure' ? '停止' : '停止'}
-                    onPress={() => stopTest('bloodPressure')}
-                    disabled={isTesting !== 'bloodPressure'}
-                  />
-                </View>
+                <TestButtonGroup
+                  testType="bloodPressure"
+                  isTesting={isTesting}
+                  startTitle="血压测试"
+                  stopTitle="停止"
+                  onStart={() => startTest('bloodPressure')}
+                  onStop={() => stopTest('bloodPressure')}
+                />
                 {bloodPressureResult && (
-                  <View style={styles.resultBox}>
-                    {renderTestResult('状态', bloodPressureResult.state)}
-                    {bloodPressureResult.progress !== undefined && renderTestResult('进度', String(bloodPressureResult.progress))}
-                    {bloodPressureResult.systolic && renderTestResult('收缩压', String(bloodPressureResult.systolic), 'mmHg')}
-                    {bloodPressureResult.diastolic && renderTestResult('舒张压', String(bloodPressureResult.diastolic), 'mmHg')}
-                    {bloodPressureResult.pulse && renderTestResult('脉搏', String(bloodPressureResult.pulse), 'bpm')}
-                  </View>
+                  <TestResultBox>
+                    <TestResultItem label="状态" value={bloodPressureResult.state} />
+                    {bloodPressureResult.progress !== undefined && (
+                      <TestResultItem label="进度" value={String(bloodPressureResult.progress)} />
+                    )}
+                    {bloodPressureResult.systolic && (
+                      <TestResultItem label="收缩压" value={String(bloodPressureResult.systolic)} unit="mmHg" />
+                    )}
+                    {bloodPressureResult.diastolic && (
+                      <TestResultItem label="舒张压" value={String(bloodPressureResult.diastolic)} unit="mmHg" />
+                    )}
+                    {bloodPressureResult.pulse && (
+                      <TestResultItem label="脉搏" value={String(bloodPressureResult.pulse)} unit="bpm" />
+                    )}
+                  </TestResultBox>
                 )}
 
-                <View style={styles.testButtonRow}>
-                  <Button
-                    title={isTesting === 'bloodOxygen' ? '测试中...' : '血氧测试'}
-                    onPress={() => startTest('bloodOxygen')}
-                    disabled={isTesting !== null}
-                  />
-                  <Button
-                    title={isTesting === 'bloodOxygen' ? '停止' : '停止'}
-                    onPress={() => stopTest('bloodOxygen')}
-                    disabled={isTesting !== 'bloodOxygen'}
-                  />
-                </View>
+                <TestButtonGroup
+                  testType="bloodOxygen"
+                  isTesting={isTesting}
+                  startTitle="血氧测试"
+                  stopTitle="停止"
+                  onStart={() => startTest('bloodOxygen')}
+                  onStop={() => stopTest('bloodOxygen')}
+                />
                 {bloodOxygenResult && (
-                  <View style={styles.resultBox}>
-                    {renderTestResult('状态', bloodOxygenResult.state)}
-                    {bloodOxygenResult.value && renderTestResult('血氧', String(bloodOxygenResult.value), '%')}
-                  </View>
+                  <TestResultBox>
+                    <TestResultItem label="状态" value={bloodOxygenResult.state} />
+                    {bloodOxygenResult.value && (
+                      <TestResultItem label="血氧" value={String(bloodOxygenResult.value)} unit="%" />
+                    )}
+                  </TestResultBox>
                 )}
 
-                <View style={styles.testButtonRow}>
-                  <Button
-                    title={isTesting === 'temperature' ? '测试中...' : '体温测试'}
-                    onPress={() => startTest('temperature')}
-                    disabled={isTesting !== null}
-                  />
-                  <Button
-                    title={isTesting === 'temperature' ? '停止' : '停止'}
-                    onPress={() => stopTest('temperature')}
-                    disabled={isTesting !== 'temperature'}
-                  />
-                </View>
+                <TestButtonGroup
+                  testType="temperature"
+                  isTesting={isTesting}
+                  startTitle="体温测试"
+                  stopTitle="停止"
+                  onStart={() => startTest('temperature')}
+                  onStop={() => stopTest('temperature')}
+                />
                 {temperatureResult && (
-                  <View style={styles.resultBox}>
-                    {renderTestResult('状态', temperatureResult.state)}
-                    {temperatureResult.value && renderTestResult('体温', String(temperatureResult.value.toFixed(1)), '℃')}
-                  </View>
+                  <TestResultBox>
+                    <TestResultItem label="状态" value={temperatureResult.state} />
+                    {temperatureResult.value && (
+                      <TestResultItem label="体温" value={String(temperatureResult.value.toFixed(1))} unit="℃" />
+                    )}
+                  </TestResultBox>
                 )}
 
-                <View style={styles.testButtonRow}>
-                  <Button
-                    title={isTesting === 'stress' ? '测试中...' : '压力测试'}
-                    onPress={() => startTest('stress')}
-                    disabled={isTesting !== null}
-                  />
-                  <Button
-                    title={isTesting === 'stress' ? '停止' : '停止'}
-                    onPress={() => stopTest('stress')}
-                    disabled={isTesting !== 'stress'}
-                  />
-                </View>
+                <TestButtonGroup
+                  testType="stress"
+                  isTesting={isTesting}
+                  startTitle="压力测试"
+                  stopTitle="停止"
+                  onStart={() => startTest('stress')}
+                  onStop={() => stopTest('stress')}
+                />
                 {stressData && (
-                  <View style={styles.resultBox}>
-                    {renderTestResult('压力值', String(stressData.stress))}
-                  </View>
+                  <TestResultBox>
+                    <TestResultItem label="压力值" value={String(stressData.stress)} />
+                  </TestResultBox>
                 )}
 
-                <View style={styles.testButtonRow}>
-                  <Button
-                    title={isTesting === 'bloodGlucose' ? '测试中...' : '血糖测试'}
-                    onPress={() => startTest('bloodGlucose')}
-                    disabled={isTesting !== null}
-                  />
-                  <Button
-                    title={isTesting === 'bloodGlucose' ? '停止' : '停止'}
-                    onPress={() => stopTest('bloodGlucose')}
-                    disabled={isTesting !== 'bloodGlucose'}
-                  />
-                </View>
+                <TestButtonGroup
+                  testType="bloodGlucose"
+                  isTesting={isTesting}
+                  startTitle="血糖测试"
+                  stopTitle="停止"
+                  onStart={() => startTest('bloodGlucose')}
+                  onStop={() => stopTest('bloodGlucose')}
+                />
                 {bloodGlucoseData && (
-                  <View style={styles.resultBox}>
-                    {renderTestResult('血糖值', String(bloodGlucoseData.glucose), 'mmol/L')}
-                  </View>
+                  <TestResultBox>
+                    <TestResultItem label="血糖值" value={String(bloodGlucoseData.glucose)} unit="mmol/L" />
+                  </TestResultBox>
                 )}
               </View>
             )}
 
             {isDeviceReady && !isTesting && (
               <View style={styles.dataSection}>
-                <View style={styles.dataSectionHeader}>
-                  <Text style={styles.sectionTitle}>📊 健康数据</Text>
-                  <Button 
-                    title="刷新数据" 
-                    onPress={startReadOriginData} 
-                    disabled={isLoadingData}
-                  />
-                </View>
-                
+                <Text style={styles.sectionTitle}>📊 数据展示</Text>
+
                 <View style={styles.sportSection}>
-                  <View style={styles.dataSectionHeader}>
-                    <Text style={styles.subSectionTitle}>🏃 运动数据</Text>
-                    <Button 
-                      title="重新获取" 
-                      onPress={refreshSportData} 
-                      disabled={isLoadingData}
-                    />
-                  </View>
+                  <Text style={styles.subSectionTitle}>🏃 运动数据</Text>
                   {sportStepData ? (
-                    <View style={styles.summaryGrid}>
-                      <View style={styles.summaryItem}>
-                        <Text style={styles.summaryValue}>{(sportStepData.stepCount || 0).toLocaleString()}</Text>
-                        <Text style={styles.summaryLabel}>步数</Text>
-                      </View>
-                      <View style={styles.summaryItem}>
-                        <Text style={styles.summaryValue}>{(sportStepData.distance || 0).toFixed(2)}</Text>
-                        <Text style={styles.summaryLabel}>距离 (km)</Text>
-                      </View>
-                      <View style={styles.summaryItem}>
-                        <Text style={styles.summaryValue}>{(sportStepData.calories || 0).toFixed(0)}</Text>
-                        <Text style={styles.summaryLabel}>卡路里 (kcal)</Text>
-                      </View>
-                      <View style={styles.summaryItem}>
-                        <Text style={styles.summaryValue}>{sportSummary.avgHeartRate || '--'}</Text>
-                        <Text style={styles.summaryLabel}>平均心率</Text>
-                      </View>
-                    </View>
+                    <DataSummaryGrid>
+                      <DataSummaryItem 
+                        value={(sportStepData.stepCount || 0).toLocaleString()} 
+                        label="步数" 
+                      />
+                      <DataSummaryItem 
+                        value={(sportStepData.distance || 0).toFixed(2)} 
+                        label="距离 (km)" 
+                      />
+                      <DataSummaryItem 
+                        value={(sportStepData.calories || 0).toFixed(0)} 
+                        label="卡路里 (kcal)" 
+                      />
+                      <DataSummaryItem 
+                        value={sportSummary.avgHeartRate || '--'} 
+                        label="平均心率" 
+                      />
+                    </DataSummaryGrid>
                   ) : (
-                    <View style={styles.emptyDataBox}>
-                      <Text style={styles.emptyDataText}>暂无运动数据</Text>
-                      <Text style={styles.emptyDataHint}>点击"刷新数据"读取设备数据</Text>
-                    </View>
+                    <EmptyDataBox 
+                      title="暂无运动数据" 
+                      hint="点击获取运动数据按钮读取设备数据" 
+                    />
                   )}
                 </View>
 
@@ -876,38 +837,23 @@ export default function HomeScreen() {
                   <Text style={styles.subSectionTitle}>😴 睡眠数据</Text>
                   {sleepDataList.length > 0 ? (
                     sleepDataList.map((sleep, index) => (
-                      <View key={index} style={styles.sleepCard}>
-                        <View style={styles.sleepHeader}>
-                          <Text style={styles.sleepTime}>
-                            {sleep.sleepTime} → {sleep.wakeTime}
-                          </Text>
-                          <Text style={styles.sleepScore}>评分: {sleep.sleepLevel}/5</Text>
-                        </View>
-                        <View style={styles.sleepStats}>
-                          <View style={styles.sleepStatItem}>
-                            <Text style={styles.sleepStatValue}>{sleep.deepSleepDuration}</Text>
-                            <Text style={styles.sleepStatLabel}>深睡(小时)</Text>
-                          </View>
-                          <View style={styles.sleepStatItem}>
-                            <Text style={styles.sleepStatValue}>{sleep.lightSleepDuration}</Text>
-                            <Text style={styles.sleepStatLabel}>浅睡(小时)</Text>
-                          </View>
-                          <View style={styles.sleepStatItem}>
-                            <Text style={styles.sleepStatValue}>{sleep.totalSleepHours}h {sleep.totalSleepMinutes}m</Text>
-                            <Text style={styles.sleepStatLabel}>总睡眠</Text>
-                          </View>
-                          <View style={styles.sleepStatItem}>
-                            <Text style={styles.sleepStatValue}>{sleep.wakeUpCount}</Text>
-                            <Text style={styles.sleepStatLabel}>清醒次数</Text>
-                          </View>
-                        </View>
-                      </View>
+                      <SleepCard
+                        key={index}
+                        sleepTime={sleep.sleepTime}
+                        wakeTime={sleep.wakeTime}
+                        sleepLevel={sleep.sleepLevel}
+                        deepSleepDuration={sleep.deepSleepDuration}
+                        lightSleepDuration={sleep.lightSleepDuration}
+                        totalSleepHours={sleep.totalSleepHours}
+                        totalSleepMinutes={sleep.totalSleepMinutes}
+                        wakeUpCount={sleep.wakeUpCount}
+                      />
                     ))
                   ) : (
-                    <View style={styles.emptyDataBox}>
-                      <Text style={styles.emptyDataText}>暂无睡眠数据</Text>
-                      <Text style={styles.emptyDataHint}>请确保昨晚佩戴设备睡眠</Text>
-                    </View>
+                    <EmptyDataBox 
+                      title="暂无睡眠数据" 
+                      hint="点击获取睡眠数据按钮读取设备数据" 
+                    />
                   )}
                 </View>
 
@@ -951,10 +897,10 @@ export default function HomeScreen() {
                 )}
 
                 {sleepDataList.length === 0 && !sportStepData && originDataList.length === 0 && !isLoadingData && (
-                  <View style={styles.emptyDataContainer}>
-                    <Text style={styles.emptyDataText}>暂无历史数据</Text>
-                    <Text style={styles.emptyDataHint}>请确保设备已同步数据，然后点击"刷新数据"</Text>
-                  </View>
+                  <EmptyDataBox 
+                    title="暂无数据" 
+                    hint="点击上方按钮获取对应数据" 
+                  />
                 )}
               </View>
             )}

@@ -2,7 +2,6 @@ import { requireNativeModule } from 'expo-modules-core';
 import type { EventSubscription } from 'expo-modules-core';
 
 import type {
-  VeepooDevice,
   ConnectionStatus,
   ScanOptions,
   ConnectOptions,
@@ -12,16 +11,8 @@ import type {
   DeviceVersion,
   PasswordData,
   SocialMsgData,
-  ReadOriginProgress,
   Language,
   AutoMeasureSetting,
-  HeartRateTestResult,
-  BloodPressureTestResult,
-  BloodOxygenTestResult,
-  TemperatureTestResult,
-  StressData,
-  BloodGlucoseData,
-  HalfHourData,
   SleepData,
   SportStepData,
   VeepooError,

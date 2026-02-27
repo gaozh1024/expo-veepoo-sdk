@@ -124,6 +124,7 @@ extension VeepooSDKModule {
       self.pendingConnectDeviceId = nil
       self.pendingConnectPromise = nil
       self.pendingConnectPassword = nil
+      self.pendingConnectIs24Hour = false
       
       if let central = self.centralManager, self.isScanning {
         central.stopScan()

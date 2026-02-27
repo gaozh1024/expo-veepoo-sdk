@@ -352,32 +352,6 @@ export interface TemperatureTestResult {
   state: TestState;
   value?: number;
   originalTemp?: number;
-  progress?: number;  // 新增：进度百分比 0-100
-  enable?: boolean;
-}
-
-export interface StressData {
-  stress: number;
-  timestamp: number;
-  progress?: number;  // 新增：进度百分比 0-100
-}
-
-export interface BloodPressureTestResult {
-  state: TestState;
-  systolic?: number;
-  diastolic?: number;
-  pulse?: number;
-}
-
-export interface BloodOxygenTestResult {
-  state: TestState;
-  value?: number;
-}
-
-export interface TemperatureTestResult {
-  state: TestState;
-  value?: number;
-  originalValue?: number;
   progress?: number;
   enable?: boolean;
 }
