@@ -95,25 +95,34 @@ export default function HomeScreen() {
     bloodGlucose: '血糖测试',
   };
 
-  const formatTestState = (state: TestState | undefined): string => {
-    switch (state) {
-      case 'idle':
-        return '空闲 (idle)';
-      case 'start':
-        return '开始 (start)';
-      case 'testing':
-        return '测试中 (testing)';
-      case 'over':
-        return '完成 (over)';
-      case 'notWear':
-        return '未佩戴 (notWear)';
-      case 'deviceBusy':
-        return '设备忙 (deviceBusy)';
-      case 'error':
-        return '错误 (error)';
-      default:
-        return state ?? '未知';
-    }
+  const formatTestState = (state: TestState | string | undefined): string => {
+    if (!state) return '未知';
+    const normalized = state.toLowerCase();
+    const stateMap: Record<string, string> = {
+      'idle': '空闲',
+      'state_init': '空闲',
+      'free': '空闲',
+      'start': '开始',
+      'begin': '开始',
+      'testing': '测试中',
+      'detect': '测试中',
+      'detect_sp': '测试中',
+      'progress': '测试中',
+      'over': '完成',
+      'finish': '完成',
+      'complete': '完成',
+      'success': '完成',
+      'notwear': '未佩戴',
+      'unpass_wear': '未佩戴',
+      'nowear': '未佩戴',
+      'devicebusy': '设备忙',
+      'busy': '设备忙',
+      'error': '出错',
+      'fail': '出错',
+      'charging': '出错',
+      'charg_low': '出错',
+    };
+    return stateMap[normalized] ?? state;
   };
 
   const renderTestResult = (testType: TestType) => {
@@ -152,6 +161,9 @@ export default function HomeScreen() {
          return test.bloodOxygenResult ? (
            <TestResultBox>
              <TestResultItem label="状态" value={formatTestState(test.bloodOxygenResult.state)} />
+             {test.bloodOxygenResult.progress !== undefined ? (
+               <TestResultItem label="进度" value={String(test.bloodOxygenResult.progress)} />
+             ) : null}
              {test.bloodOxygenResult.value != null ? (
                <TestResultItem label="血氧" value={String(test.bloodOxygenResult.value)} unit="%" />
              ) : null}

@@ -82,8 +82,10 @@ fun normalizeTestState(rawState: String?): String {
   return when {
     normalized.contains("idle") || normalized == "free" -> "idle"
     normalized.contains("start") || normalized == "begin" -> "start"
+    normalized.contains("state_bp_normal") || normalized.contains("bp_normal") -> "testing"
+    normalized.contains("state_heart_detect") || normalized.contains("heart_detect") || normalized.contains("heart_normal") -> "testing"
     normalized.contains("testing") || normalized == "detect" || normalized == "detect_sp" || normalized.contains("progress") -> "testing"
-    normalized.contains("over") || normalized.contains("finish") || normalized.contains("complete") || normalized.contains("success") || normalized.contains("_normal") -> "over"
+    normalized.contains("over") || normalized.contains("finish") || normalized.contains("complete") || normalized.contains("success") -> "over"
     normalized.contains("notwear") || normalized.contains("unpass_wear") || normalized.contains("nowear") -> "notWear"
     normalized.contains("busy") || normalized.contains("devicebusy") -> "deviceBusy"
     normalized.contains("error") || normalized.contains("fail") || normalized.contains("charging") || normalized.contains("charg_low") -> "error"
@@ -255,4 +257,79 @@ fun VeepooSDKModule.startPressureLoop(firstPromise: Promise? = null) {
       }
     }
   )
+}
+
+const val TEST_PROGRESS_TOTAL_SECONDS = 25
+const val TEST_PROGRESS_INCREMENT = 4
+
+fun VeepooSDKModule.startSimulatedHeartRateProgress(
+  onProgress: (Int) -> Unit,
+  onComplete: () -> Unit
+) {
+  stopSimulatedHeartRateProgress()
+  heartRateTestProgress = 0
+  isHeartRateTesting = true
+
+  heartRateTestRunnable = object : Runnable {
+    override fun run() {
+      if (!isHeartRateTesting) return
+
+      heartRateTestProgress += TEST_PROGRESS_INCREMENT
+      onProgress(heartRateTestProgress)
+
+      if (heartRateTestProgress >= 100) {
+        isHeartRateTesting = false
+        onComplete()
+      } else {
+        mainHandler.postDelayed(this, 1000L)
+      }
+    }
+  }
+
+  mainHandler.post(heartRateTestRunnable!!)
+}
+
+fun VeepooSDKModule.stopSimulatedHeartRateProgress() {
+  isHeartRateTesting = false
+  heartRateTestRunnable?.let {
+    mainHandler.removeCallbacks(it)
+    heartRateTestRunnable = null
+  }
+  heartRateTestProgress = 0
+}
+
+fun VeepooSDKModule.startSimulatedBloodOxygenProgress(
+  onProgress: (Int) -> Unit,
+  onComplete: () -> Unit
+) {
+  stopSimulatedBloodOxygenProgress()
+  bloodOxygenTestProgress = 0
+  isBloodOxygenTesting = true
+
+  bloodOxygenTestRunnable = object : Runnable {
+    override fun run() {
+      if (!isBloodOxygenTesting) return
+
+      bloodOxygenTestProgress += TEST_PROGRESS_INCREMENT
+      onProgress(bloodOxygenTestProgress)
+
+      if (bloodOxygenTestProgress >= 100) {
+        isBloodOxygenTesting = false
+        onComplete()
+      } else {
+        mainHandler.postDelayed(this, 1000L)
+      }
+    }
+  }
+
+  mainHandler.post(bloodOxygenTestRunnable!!)
+}
+
+fun VeepooSDKModule.stopSimulatedBloodOxygenProgress() {
+  isBloodOxygenTesting = false
+  bloodOxygenTestRunnable?.let {
+    mainHandler.removeCallbacks(it)
+    bloodOxygenTestRunnable = null
+  }
+  bloodOxygenTestProgress = 0
 }

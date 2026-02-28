@@ -123,10 +123,7 @@ export const useVeepooSDK = ({ device, test, data, setStatus }: UseVeepooSDKOpti
       heartRateTestResult: (payload: { result: { state: string; progress?: number } }) => {
         testRef.current.setHeartRateResult(payload.result as Parameters<typeof test.setHeartRateResult>[0]);
         testRef.current.setHeartRateProgress(payload.result.progress ?? 0);
-        if (payload.result.state === 'over') {
-          testRef.current.setIsTesting(null);
-          testRef.current.setHeartRateProgress(0);
-        }
+        // 心率测试不会自动停止，需要用户手动停止，所以不在这里设置 isTesting(null)
       },
 
       bloodPressureTestResult: (payload: { result: { state: string } }) => {

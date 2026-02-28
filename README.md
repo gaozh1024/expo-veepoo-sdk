@@ -821,6 +821,8 @@ await VeepooSDK.modifyAutoMeasureSetting({
 
 **事件:** `heartRateTestResult`
 
+> **注意**: 由于 Veepoo SDK 不返回心率测试进度，本模块模拟了进度（25秒完成，每秒4%）。到达100%或出现错误状态时会自动停止测试。
+
 **示例:**
 ```typescript
 await VeepooSDK.startHeartRateTest();
@@ -884,13 +886,19 @@ VeepooSDK.on('bloodPressureTestResult', (payload) => {
 
 **事件:** `bloodOxygenTestResult`
 
+> **注意**: 由于 Veepoo SDK 不返回血氧测试进度，本模块模拟了进度（25秒完成，每秒4%）。到达100%或出现错误状态时会自动停止测试。
+
 **示例:**
 ```typescript
 await VeepooSDK.startBloodOxygenTest();
 
 VeepooSDK.on('bloodOxygenTestResult', (payload) => {
+  console.log('状态:', payload.result.state);
+  console.log('进度:', payload.result.progress);
+  
   if (payload.result.state === 'over') {
     console.log('血氧:', payload.result.value, '%');
+    console.log('心率:', payload.result.rate, 'bpm');
   }
 });
 ```
