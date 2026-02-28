@@ -447,6 +447,7 @@ export type VeepooEvent =
   | 'socialMsgData'
   | 'readOriginProgress'
   | 'readOriginComplete'
+  | 'originFiveMinuteData'
   | 'originHalfHourData'
   | 'sleepData'
   | 'sportStepData'
@@ -476,6 +477,7 @@ export interface VeepooEventPayload {
   socialMsgData: { deviceId: string; data: SocialMsgData };
   readOriginProgress: { deviceId: string; progress: ReadOriginProgress };
   readOriginComplete: { deviceId: string; success: boolean };
+  originFiveMinuteData: { deviceId: string; data: OriginData };
   originHalfHourData: { deviceId: string; data: HalfHourData };
   sleepData: { deviceId: string; date: string; data: SleepData };
   sportStepData: { deviceId: string; date: string; data: SportStepData };

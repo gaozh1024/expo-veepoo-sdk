@@ -65,6 +65,7 @@ export class VeepooSDK {
       'socialMsgData',
       'readOriginProgress',
       'readOriginComplete',
+      'originFiveMinuteData',
       'originHalfHourData',
       'sleepData',
       'sportStepData',

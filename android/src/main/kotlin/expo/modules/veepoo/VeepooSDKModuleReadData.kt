@@ -204,6 +204,37 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
         override fun onOriginFiveMinuteListDataChange(dataList3: List<OriginData3>?) {
           if (dataList3 != null && dataList3.isNotEmpty()) {
             Log.d(TAG, "onOriginFiveMinuteListDataChange: ${dataList3.size} records")
+            
+            for (data in dataList3) {
+              try {
+                val timeData = data.getmTime()
+                if (timeData != null) {
+                  val timeStr = String.format("%02d:%02d", timeData.hour, timeData.minute)
+                  
+                  val item = mapOf(
+                    "time" to timeStr,
+                    "heartValue" to data.rateValue,
+                    "stepValue" to data.stepValue,
+                    "calValue" to data.calValue,
+                    "disValue" to data.disValue,
+                    "sportValue" to data.sportValue,
+                    "systolic" to data.highValue,
+                    "diastolic" to data.lowValue,
+                    "spo2Value" to 0,
+                    "tempValue" to data.temperature,
+                    "stressValue" to data.pressure,
+                    "met" to data.met.toDouble()
+                  )
+                  
+                  module.sendEvent(ORIGIN_FIVE_MINUTE_DATA, mapOf(
+                    "deviceId" to (module.connectedDeviceId ?: ""),
+                    "data" to item
+                  ))
+                }
+              } catch (e: Exception) {
+                Log.e(TAG, "Error processing 5-minute data item", e)
+              }
+            }
           }
         }
         
@@ -339,6 +370,37 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
         override fun onOriginFiveMinuteListDataChange(dataList3: List<OriginData3>?) {
           if (dataList3 != null && dataList3.isNotEmpty()) {
             Log.d(TAG, "readDeviceAllData: onOriginFiveMinuteListDataChange: ${dataList3.size} records")
+            
+            for (data in dataList3) {
+              try {
+                val timeData = data.getmTime()
+                if (timeData != null) {
+                  val timeStr = String.format("%02d:%02d", timeData.hour, timeData.minute)
+                  
+                  val item = mapOf(
+                    "time" to timeStr,
+                    "heartValue" to data.rateValue,
+                    "stepValue" to data.stepValue,
+                    "calValue" to data.calValue,
+                    "disValue" to data.disValue,
+                    "sportValue" to data.sportValue,
+                    "systolic" to data.highValue,
+                    "diastolic" to data.lowValue,
+                    "spo2Value" to 0,
+                    "tempValue" to data.temperature,
+                    "stressValue" to data.pressure,
+                    "met" to data.met.toDouble()
+                  )
+                  
+                  module.sendEvent(ORIGIN_FIVE_MINUTE_DATA, mapOf(
+                    "deviceId" to (module.connectedDeviceId ?: ""),
+                    "data" to item
+                  ))
+                }
+              } catch (e: Exception) {
+                Log.e(TAG, "Error processing 5-minute data item in readDeviceAllData", e)
+              }
+            }
           }
         }
         
