@@ -9,15 +9,15 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { VeepooDevice } from '@gaozh1024/expo-veepoo-sdk';
-import { TestButtonGroup } from './components/TestButtonGroup';
-import { TestResultBox, TestResultItem } from './components/TestResultBox';
-import { EmptyDataBox } from './components/EmptyDataBox';
-import { DataSummaryGrid, DataSummaryItem } from './components/DataSummary';
-import { SleepCard } from './components/SleepCard';
-import { useDeviceState, useTestState, useDataState, useVeepooSDK } from './hooks';
-import type { SavedDevice, TestType } from './types';
-import { Colors, Spacing, BorderRadius, FontSize, Shadows } from './theme';
+import type { VeepooDevice, TestState } from '@gaozh1024/expo-veepoo-sdk';
+import { TestButtonGroup } from '../src/components/TestButtonGroup';
+import { TestResultBox, TestResultItem } from '../src/components/TestResultBox';
+import { EmptyDataBox } from '../src/components/EmptyDataBox';
+import { DataSummaryGrid, DataSummaryItem } from '../src/components/DataSummary';
+import { SleepCard } from '../src/components/SleepCard';
+import { useDeviceState, useTestState, useDataState, useVeepooSDK } from '../src/hooks';
+import type { SavedDevice, TestType } from '../src/types';
+import { Colors, Spacing, BorderRadius, FontSize, Shadows } from '../src/theme';
 
 export default function HomeScreen() {
   const [status, setStatus] = useState('准备就绪');
@@ -95,68 +95,95 @@ export default function HomeScreen() {
     bloodGlucose: '血糖测试',
   };
 
+  const formatTestState = (state: TestState | undefined): string => {
+    switch (state) {
+      case 'idle':
+        return '空闲 (idle)';
+      case 'start':
+        return '开始 (start)';
+      case 'testing':
+        return '测试中 (testing)';
+      case 'over':
+        return '完成 (over)';
+      case 'notWear':
+        return '未佩戴 (notWear)';
+      case 'deviceBusy':
+        return '设备忙 (deviceBusy)';
+      case 'error':
+        return '错误 (error)';
+      default:
+        return state ?? '未知';
+    }
+  };
+
   const renderTestResult = (testType: TestType) => {
-    switch (testType) {
-      case 'heartRate':
-        return test.heartRateResult && (
-          <TestResultBox>
-            <TestResultItem label="状态" value={test.heartRateResult.state} />
-            {test.heartRateResult.value && (
-              <TestResultItem label="心率" value={String(test.heartRateResult.value)} unit="bpm" />
-            )}
-            {test.heartRateResult.progress !== undefined && (
-              <TestResultItem label="进度" value={String(test.heartRateResult.progress)} />
-            )}
-          </TestResultBox>
-        );
-      case 'bloodPressure':
-        return test.bloodPressureResult && (
-          <TestResultBox>
-            <TestResultItem label="状态" value={test.bloodPressureResult.state} />
-            {test.bloodPressureResult.progress !== undefined && (
-              <TestResultItem label="进度" value={String(test.bloodPressureResult.progress)} />
-            )}
-            {test.bloodPressureResult.systolic && (
-              <TestResultItem label="收缩压" value={String(test.bloodPressureResult.systolic)} unit="mmHg" />
-            )}
-            {test.bloodPressureResult.diastolic && (
-              <TestResultItem label="舒张压" value={String(test.bloodPressureResult.diastolic)} unit="mmHg" />
-            )}
-            {test.bloodPressureResult.pulse && (
-              <TestResultItem label="脉搏" value={String(test.bloodPressureResult.pulse)} unit="bpm" />
-            )}
-          </TestResultBox>
-        );
-      case 'bloodOxygen':
-        return test.bloodOxygenResult && (
-          <TestResultBox>
-            <TestResultItem label="状态" value={test.bloodOxygenResult.state} />
-            {test.bloodOxygenResult.value && (
-              <TestResultItem label="血氧" value={String(test.bloodOxygenResult.value)} unit="%" />
-            )}
-          </TestResultBox>
-        );
-      case 'temperature':
-        return test.temperatureResult && (
-          <TestResultBox>
-            <TestResultItem label="状态" value={test.temperatureResult.state} />
-            {test.temperatureResult.value && (
-              <TestResultItem label="体温" value={String(test.temperatureResult.value.toFixed(1))} unit="℃" />
-            )}
-          </TestResultBox>
-        );
+     switch (testType) {
+       case 'heartRate':
+         return test.heartRateResult ? (
+           <TestResultBox>
+             <TestResultItem label="状态" value={formatTestState(test.heartRateResult.state)} />
+             {test.heartRateResult.value != null ? (
+               <TestResultItem label="心率" value={String(test.heartRateResult.value)} unit="bpm" />
+             ) : null}
+             {test.heartRateResult.progress !== undefined ? (
+               <TestResultItem label="进度" value={String(test.heartRateResult.progress)} />
+             ) : null}
+           </TestResultBox>
+         ) : null;
+       case 'bloodPressure':
+         return test.bloodPressureResult ? (
+           <TestResultBox>
+             <TestResultItem label="状态" value={formatTestState(test.bloodPressureResult.state)} />
+             {test.bloodPressureResult.progress !== undefined ? (
+               <TestResultItem label="进度" value={String(test.bloodPressureResult.progress)} />
+             ) : null}
+             {test.bloodPressureResult.systolic != null ? (
+               <TestResultItem label="收缩压" value={String(test.bloodPressureResult.systolic)} unit="mmHg" />
+             ) : null}
+             {test.bloodPressureResult.diastolic != null ? (
+               <TestResultItem label="舒张压" value={String(test.bloodPressureResult.diastolic)} unit="mmHg" />
+             ) : null}
+             {test.bloodPressureResult.pulse != null ? (
+               <TestResultItem label="脉搏" value={String(test.bloodPressureResult.pulse)} unit="bpm" />
+             ) : null}
+           </TestResultBox>
+         ) : null;
+       case 'bloodOxygen':
+         return test.bloodOxygenResult ? (
+           <TestResultBox>
+             <TestResultItem label="状态" value={formatTestState(test.bloodOxygenResult.state)} />
+             {test.bloodOxygenResult.value != null ? (
+               <TestResultItem label="血氧" value={String(test.bloodOxygenResult.value)} unit="%" />
+             ) : null}
+           </TestResultBox>
+         ) : null;
+       case 'temperature':
+         return test.temperatureResult ? (
+           <TestResultBox>
+             <TestResultItem label="状态" value={formatTestState(test.temperatureResult.state)} />
+             {test.temperatureResult.value != null ? (
+               <TestResultItem label="体温" value={String(test.temperatureResult.value.toFixed(1))} unit="℃" />
+             ) : null}
+           </TestResultBox>
+         ) : null;
       case 'stress':
-        return test.stressData && (
+        return test.stressData ? (
           <TestResultBox>
             <TestResultItem label="压力值" value={String(test.stressData.stress)} />
           </TestResultBox>
-        );
+        ) : null;
       case 'bloodGlucose':
-        return test.bloodGlucoseData && (
+        return test.bloodGlucoseResult ? (
           <TestResultBox>
-            <TestResultItem label="血糖值" value={String(test.bloodGlucoseData.glucose)} unit="mmol/L" />
+            <TestResultItem label="状态" value={formatTestState(test.bloodGlucoseResult.state)} />
+            {test.bloodGlucoseResult.glucose != null ? (
+              <TestResultItem label="血糖值" value={String(test.bloodGlucoseResult.glucose)} unit="mmol/L" />
+            ) : null}
+            {test.bloodGlucoseResult.progress !== undefined ? (
+              <TestResultItem label="进度" value={String(test.bloodGlucoseResult.progress)} />
+            ) : null}
           </TestResultBox>
-        );
+        ) : null;
     }
   };
 
@@ -166,7 +193,7 @@ export default function HomeScreen() {
         <Text style={styles.title}>Veepoo SDK 测试</Text>
         <Text style={styles.status}>状态: {status}</Text>
 
-        {(data.isLoadingData || (device.connectedDeviceId && device.isDeviceReady && data.loadDataProgress < 100)) && (
+        {(data.isLoadingData || (!!device.connectedDeviceId && device.isDeviceReady && data.loadDataProgress < 100)) ? (
           <View style={styles.loadingDataContainer}>
             <ActivityIndicator size="large" color="#007AFF" />
             <Text style={styles.loadingDataText}>正在读取历史数据...</Text>
@@ -175,16 +202,16 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.progressText}>{data.loadDataProgress}%</Text>
           </View>
-        )}
+        ) : null}
 
-        {device.battery && !data.isLoadingData && (
+        {device.battery && !data.isLoadingData ? (
           <View style={styles.batteryInfo}>
             <Text>
               电量: {device.battery.percent > 0 ? device.battery.percent : device.battery.level}%
               {device.battery.isLowBattery ? ' 电量低' : ''}
             </Text>
           </View>
-        )}
+        ) : null}
 
         {!device.connectedDeviceId ? (
           <>

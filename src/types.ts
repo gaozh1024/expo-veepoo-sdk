@@ -246,9 +246,11 @@ export interface BloodGlucoseData {
   glucose?: number;
   progress?: number;
   level?: string | number;
+  state?: TestState;
   status?: string;
   timestamp?: number;
   isEnd?: boolean;
+  error?: string;
 }
 
 export interface SleepDataItem {
@@ -356,6 +358,14 @@ export interface TemperatureTestResult {
   enable?: boolean;
 }
 
+export interface BloodGlucoseTestResult {
+  state: TestState;
+  glucose?: number;
+  progress?: number;
+  level?: string | number;
+  isEnd?: boolean;
+}
+
 export type ReadState = 'idle' | 'start' | 'reading' | 'complete' | 'invalid';
 
 export interface ReadOriginProgress {
@@ -446,6 +456,7 @@ export type VeepooEvent =
   | 'temperatureTestResult'
   | 'stressData'
   | 'bloodGlucoseData'
+  | 'bloodGlucoseTestResult'
   | 'batteryData'
   | 'customSettingData'
   | 'dataReceived'
@@ -474,6 +485,7 @@ export interface VeepooEventPayload {
   temperatureTestResult: { deviceId: string; result: TemperatureTestResult };
   stressData: { deviceId: string; data: StressData };
   bloodGlucoseData: { deviceId: string; data: BloodGlucoseData };
+  bloodGlucoseTestResult: { deviceId: string; result: BloodGlucoseTestResult };
   batteryData: { deviceId: string; data: BatteryInfo };
   customSettingData: { deviceId: string; data: CustomSettingData };
   dataReceived: { deviceId: string; data: unknown };

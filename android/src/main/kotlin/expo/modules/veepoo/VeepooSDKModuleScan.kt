@@ -5,10 +5,10 @@ import com.inuker.bluetooth.library.search.SearchResult
 import com.inuker.bluetooth.library.search.response.SearchResponse
 import com.veepoo.protocol.VPOperateManager
 import expo.modules.kotlin.Promise
-import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 
 // 扫描相关
-fun ModuleDefinition.defineScan(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.defineScan(module: VeepooSDKModule) {
   AsyncFunction("startScan") { _: Map<String, Any?>?, promise: Promise ->
     if (!module.isInitialized) {
       promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized", null)

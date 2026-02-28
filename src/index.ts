@@ -43,6 +43,7 @@ export type {
   BloodPressureTestResult,
   BloodOxygenTestResult,
   TemperatureTestResult,
+  BloodGlucoseTestResult,
   ReadState,
   ReadOriginProgress,
   AutoMeasureSetting,

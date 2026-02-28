@@ -9,11 +9,24 @@ import com.veepoo.protocol.VPOperateManager
 import com.veepoo.protocol.listener.base.IBleWriteResponse
 import com.veepoo.protocol.listener.base.IConnectResponse
 import com.veepoo.protocol.listener.base.INotifyResponse
+import com.veepoo.protocol.listener.data.ICustomSettingDataListener
+import com.veepoo.protocol.listener.data.IDeviceFuctionDataListener
+import com.veepoo.protocol.listener.data.IPwdDataListener
+import com.veepoo.protocol.listener.data.ISocialMsgDataListener
+import com.veepoo.protocol.model.datas.DeviceFunctionPackage1
+import com.veepoo.protocol.model.datas.DeviceFunctionPackage2
+import com.veepoo.protocol.model.datas.DeviceFunctionPackage3
+import com.veepoo.protocol.model.datas.DeviceFunctionPackage4
+import com.veepoo.protocol.model.datas.DeviceFunctionPackage5
+import com.veepoo.protocol.model.datas.FunctionDeviceSupportData
+import com.veepoo.protocol.model.datas.FunctionSocailMsgData
+import com.veepoo.protocol.model.datas.PwdData
+import com.veepoo.protocol.model.settings.CustomSettingData
 import expo.modules.kotlin.Promise
-import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 
 // 连接相关
-fun ModuleDefinition.defineConnection(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.defineConnection(module: VeepooSDKModule) {
   AsyncFunction("connect") { deviceId: String, options: Map<String, Any?>?, promise: Promise ->
     if (!module.isInitialized) {
       promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized", null)
@@ -168,11 +181,13 @@ fun ModuleDefinition.defineConnection(module: VeepooSDKModule) {
       object : IDeviceFuctionDataListener {
         override fun onFunctionSupportDataChange(data: FunctionDeviceSupportData?) {
           if (data != null) {
+            module.watchday = data.wathcDay
             module.updateFunctionsFromSupportData(data)
             module.sendEvent(DEVICE_FUNCTION, mapOf(
               "deviceId" to (module.connectedDeviceId ?: ""),
               "data" to module.cachedDeviceFunctions,
-              "functions" to module.cachedDeviceFunctions
+              "functions" to module.cachedDeviceFunctions,
+              "watchday" to data.wathcDay
             ))
           }
         }

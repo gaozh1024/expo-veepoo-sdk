@@ -1,86 +1,30 @@
-buildscript {
-  def reactNativeVersion = rootProject.hasProperty('reactNativeVersion') ? rootProject.property('reactNativeVersion') : "0.72.7"
-  ext {
-    compileSdkVersion = 34
-    targetSdkVersion = 34
-    minSdkVersion = 23
-    buildToolsVersion = "34.0.0"
-    kotlinVersion = rootProject.ext.has('kotlinVersion') ? rootProject.ext.get('kotlinVersion') : '1.9.0'
-  }
-  repositories {
-    google()
-    mavenCentral()
-  }
-  dependencies {
-    classpath "com.android.tools.build:gradle:8.1.1"
-    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-  }
-}
-
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
+
+group = 'expo.modules.veepoo'
+version = '1.0.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useDefaultAndroidSdkVersions()
+useExpoPublishing()
 
 android {
   namespace "expo.modules.veepoo"
-  compileSdk rootProject.ext.compileSdkVersion
 
   defaultConfig {
-    minSdkVersion rootProject.ext.minSdkVersion
-    targetSdkVersion rootProject.ext.targetSdkVersion
-  }
-
-  compileOptions {
-    sourceCompatibility JavaVersion.VERSION_17
-    targetCompatibility JavaVersion.VERSION_17
-  }
-
-  kotlinOptions {
-    jvmTarget = '17'
-  }
-
-  buildTypes {
-    release {
-      minifyEnabled false
-    }
+    versionCode 1
+    versionName "1.0.0"
   }
 
   lint {
     abortOnError false
   }
-
-  sourceSets {
-    main {
-      java {
-        srcDirs = ['src/main/java', 'src/main/kotlin']
-      }
-    }
-  }
-}
-
-repositories {
-  google()
-  mavenCentral()
 }
 
 dependencies {
-  implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.has('kotlinVersion') ? rootProject.ext.get('kotlinVersion') : '1.9.24'}"
-  implementation "com.facebook.react:react-native:+"
   implementation "com.google.code.gson:gson:2.10.1"
-  
-  compileOnly project(':expo-modules-core')
 
-  implementation files(
-    "$projectDir/libs/vpprotocol-2.3.37.15.aar",
-    "$projectDir/libs/vpbluetooth-1.18.aar",
-    "$projectDir/libs/libfastdfu-0.5.aar",
-    "$projectDir/libs/libdfu-1.5.aar",
-    "$projectDir/libs/libble-0.5.aar",
-    "$projectDir/libs/libcomx-0.5.jar",
-    "$projectDir/libs/jl_rcsp_V0.7.2_527-release.aar",
-    "$projectDir/libs/jl_bt_ota_V1.10.0_10931-release.aar",
-    "$projectDir/libs/abpartool-release.aar",
-    "$projectDir/libs/JL_Watch_V1.13.1_11214-release.aar",
-    "$projectDir/libs/BmpConvert_V1.6.0_10604-release.aar",
-    "$projectDir/libs/AMap2DMap_6.0.0_AMapSearch_9.4.5_AMapLocation_6.2.0_20221026.jar"
-  )
+  implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'])
 }

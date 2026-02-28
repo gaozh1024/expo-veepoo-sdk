@@ -1,3 +1,8 @@
+package expo.modules.veepoo
+
+// 日志标签
+const val TAG = "VeepooSDKModule"
+
 // 事件名称常量
 const val DEVICE_FOUND = "deviceFound"
 const val DEVICE_CONNECTED = "deviceConnected"

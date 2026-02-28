@@ -85,6 +85,7 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+.sisyphus/
 *.swp
 *.swo
 *~

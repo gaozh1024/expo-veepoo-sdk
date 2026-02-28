@@ -5,18 +5,18 @@ import type {
   BloodOxygenTestResult,
   TemperatureTestResult,
   StressData,
-  BloodGlucoseData,
+  BloodGlucoseTestResult,
 } from '@gaozh1024/expo-veepoo-sdk';
 import type { TestType } from '../types';
 
-export interface TestState {
+export interface TestStateData {
   isTesting: string | null;
   heartRateResult: HeartRateTestResult | null;
   bloodPressureResult: BloodPressureTestResult | null;
   bloodOxygenResult: BloodOxygenTestResult | null;
   temperatureResult: TemperatureTestResult | null;
   stressData: StressData | null;
-  bloodGlucoseData: BloodGlucoseData | null;
+  bloodGlucoseResult: BloodGlucoseTestResult | null;
   heartRateProgress: number;
 }
 
@@ -27,13 +27,13 @@ export interface TestActions {
   setBloodOxygenResult: (value: BloodOxygenTestResult | null) => void;
   setTemperatureResult: (value: TemperatureTestResult | null) => void;
   setStressData: (value: StressData | null) => void;
-  setBloodGlucoseData: (value: BloodGlucoseData | null) => void;
+  setBloodGlucoseResult: (value: BloodGlucoseTestResult | null) => void;
   setHeartRateProgress: (value: number) => void;
   updateTestResult: (testType: TestType, data: unknown) => void;
   clearTestState: () => void;
 }
 
-export type UseTestState = TestState & TestActions;
+export type UseTestState = TestStateData & TestActions;
 
 export const useTestState = (): UseTestState => {
   const [isTesting, setIsTesting] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export const useTestState = (): UseTestState => {
   const [bloodOxygenResult, setBloodOxygenResult] = useState<BloodOxygenTestResult | null>(null);
   const [temperatureResult, setTemperatureResult] = useState<TemperatureTestResult | null>(null);
   const [stressData, setStressData] = useState<StressData | null>(null);
-  const [bloodGlucoseData, setBloodGlucoseData] = useState<BloodGlucoseData | null>(null);
+  const [bloodGlucoseResult, setBloodGlucoseResult] = useState<BloodGlucoseTestResult | null>(null);
   const [heartRateProgress, setHeartRateProgress] = useState(0);
 
   const updateTestResult = useCallback((testType: TestType, data: unknown) => {
@@ -63,7 +63,7 @@ export const useTestState = (): UseTestState => {
         setStressData(data as StressData);
         break;
       case 'bloodGlucose':
-        setBloodGlucoseData(data as BloodGlucoseData);
+        setBloodGlucoseResult(data as BloodGlucoseTestResult);
         break;
     }
   }, []);
@@ -80,7 +80,7 @@ export const useTestState = (): UseTestState => {
     bloodOxygenResult,
     temperatureResult,
     stressData,
-    bloodGlucoseData,
+    bloodGlucoseResult,
     heartRateProgress,
     setIsTesting,
     setHeartRateResult,
@@ -88,7 +88,7 @@ export const useTestState = (): UseTestState => {
     setBloodOxygenResult,
     setTemperatureResult,
     setStressData,
-    setBloodGlucoseData,
+    setBloodGlucoseResult,
     setHeartRateProgress,
     updateTestResult,
     clearTestState,

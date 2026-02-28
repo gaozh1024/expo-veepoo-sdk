@@ -155,9 +155,12 @@ export const useVeepooSDK = ({ device, test, data, setStatus }: UseVeepooSDKOpti
         testRef.current.setIsTesting(null);
       },
 
-      bloodGlucoseData: (payload: { data: Parameters<typeof test.setBloodGlucoseData>[0] }) => {
-        testRef.current.setBloodGlucoseData(payload.data);
-        testRef.current.setIsTesting(null);
+      bloodGlucoseData: (payload: { data: { state?: string; isEnd?: boolean } }) => {
+        testRef.current.setBloodGlucoseResult(payload.data as Parameters<typeof testRef.current.setBloodGlucoseResult>[0]);
+        // 使用统一的 state 字段或 isEnd 字段判断是否完成
+        if (payload.data.state === 'over' || payload.data.isEnd) {
+          testRef.current.setIsTesting(null);
+        }
       },
 
       error: (error: { message: string }) => {
@@ -194,6 +197,34 @@ export const useVeepooSDK = ({ device, test, data, setStatus }: UseVeepooSDKOpti
       sportStepData: (payload: { data: Parameters<typeof data.setSportStepData>[0] }) => {
         if (payload.data) {
           dataRef.current.setSportStepData(payload.data);
+        }
+      },
+
+      deviceFunction: (payload: unknown) => {
+        console.log('[deviceFunction] 设备功能数据:', JSON.stringify(payload, null, 2));
+        const payloadObj = payload as { 
+          deviceId?: string;
+          watchday?: number;
+          functions?: { 
+            package2?: { 
+              watchDataDayNumber?: number;
+              sleepTag?: number;
+            } 
+          };
+          data?: { 
+            package2?: { 
+              watchDataDayNumber?: number;
+              sleepTag?: number;
+            } 
+          };
+        };
+        const watchday = payloadObj?.watchday ?? payloadObj?.functions?.package2?.watchDataDayNumber ?? payloadObj?.data?.package2?.watchDataDayNumber;
+        const sleepTag = payloadObj?.functions?.package2?.sleepTag ?? payloadObj?.data?.package2?.sleepTag;
+        if (watchday !== undefined) {
+          console.log('[deviceFunction] watchday 值:', watchday);
+        }
+        if (sleepTag !== undefined) {
+          console.log('[deviceFunction] sleepTag 值:', sleepTag);
         }
       },
     };
@@ -287,14 +318,18 @@ export const useVeepooSDK = ({ device, test, data, setStatus }: UseVeepooSDKOpti
     try {
       setStatus('正在获取睡眠数据...');
       const sleepData = await VeepooSDK.readSleepData();
+      console.log('[fetchSleepData] 原始返回数据:', JSON.stringify(sleepData, null, 2));
       if (sleepData && sleepData.length > 0) {
         const allItems = sleepData.flatMap(d => d.items);
+        console.log('[fetchSleepData] 解析后的睡眠条目:', JSON.stringify(allItems, null, 2));
         data.setSleepDataList(allItems);
         setStatus('睡眠数据获取成功');
       } else {
+        console.log('[fetchSleepData] 无睡眠数据');
         setStatus('暂无睡眠数据');
       }
     } catch (error) {
+      console.error('[fetchSleepData] 获取失败:', error);
       setStatus(`获取失败: ${error}`);
     }
   }, [device.isDeviceReady, data, setStatus]);

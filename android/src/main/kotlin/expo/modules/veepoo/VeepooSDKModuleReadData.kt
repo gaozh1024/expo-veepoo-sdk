@@ -6,9 +6,11 @@ import com.veepoo.protocol.VPOperateManager
 import com.veepoo.protocol.listener.base.IBleWriteResponse
 import com.veepoo.protocol.listener.data.*
 import com.veepoo.protocol.model.datas.*
+import com.veepoo.protocol.model.enums.EOprateStauts
+import com.veepoo.protocol.model.enums.ESex
 import com.veepoo.protocol.model.settings.*
 import expo.modules.kotlin.Promise
-import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 
 fun buildHalfHourItems(data: OriginHalfHourData): List<Map<String, Any>> {
   val map = linkedMapOf<String, MutableMap<String, Any>>()
@@ -54,7 +56,7 @@ fun buildHalfHourItems(data: OriginHalfHourData): List<Map<String, Any>> {
 }
 
 // 读取与同步数据
-fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
   AsyncFunction("readBattery") { promise: Promise ->
     if (!module.isInitialized || module.connectedDeviceId == null) {
       promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
@@ -428,7 +430,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
     
     val isPromiseResolved = java.util.concurrent.atomic.AtomicBoolean(false)
     
-    fun createEmptySleepResult(): Map<String, Any> = mapOf(
+    fun createEmptySleepResult(): List<Map<String, Any>> = listOf(mapOf(
       "date" to (date ?: ""),
       "items" to emptyList<Any>(),
       "summary" to mapOf(
@@ -438,9 +440,9 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
         "averageSleepQuality" to 0,
         "totalWakeUpCount" to 0
       )
-    )
+    ))
     
-    fun resolveSleepOnce(result: Map<String, Any>) {
+    fun resolveSleepOnce(result: List<Map<String, Any>>) {
       if (isPromiseResolved.compareAndSet(false, true)) {
         module.mainHandler.removeCallbacksAndMessages(null)
         promise.resolve(result)
@@ -525,13 +527,15 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
               "summary" to summary
             )
             
+            val resultList = listOf(result)
+            
             module.sendEvent(SLEEP_DATA, mapOf(
               "deviceId" to (module.connectedDeviceId ?: ""),
               "date" to (sleepData.date ?: ""),
-              "data" to result
+              "data" to resultList
             ))
             
-            resolveSleepOnce(result)
+            resolveSleepOnce(resultList)
           } else {
             Log.d(TAG, "onSleepDataChange: sleepData is null")
             resolveSleepOnce(createEmptySleepResult())
@@ -550,7 +554,7 @@ fun ModuleDefinition.defineReadData(module: VeepooSDKModule) {
           Log.d(TAG, "onReadSleepComplete")
         }
       },
-      0
+      module.watchday
     )
   }
 

@@ -1,9 +1,9 @@
 package expo.modules.veepoo
 
-import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 
 // 事件导出
-fun ModuleDefinition.defineEvents() {
+fun ModuleDefinitionBuilder.defineEvents() {
   Events(
     DEVICE_FOUND,
     DEVICE_CONNECTED,

@@ -9,10 +9,9 @@ import com.veepoo.protocol.model.enums.EBPDetectModel
 import com.veepoo.protocol.model.enums.EBloodGlucoseRiskLevel
 import com.veepoo.protocol.model.enums.EBloodGlucoseStatus
 import expo.modules.kotlin.Promise
-import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 
-// 测试与实时测量
-fun ModuleDefinition.defineTests(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.defineTests(module: VeepooSDKModule) {
   AsyncFunction("startHeartRateTest") { promise: Promise ->
     if (!module.isInitialized || module.connectedDeviceId == null) {
       promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
@@ -37,7 +36,7 @@ fun ModuleDefinition.defineTests(module: VeepooSDKModule) {
       object : IHeartDataListener {
         override fun onDataChange(heartData: HeartData?) {
           if (heartData != null) {
-            val testState = heartData.heartStatus?.toString() ?: "unknown"
+            val testState = normalizeTestState(heartData.heartStatus?.toString())
             
             module.sendEvent(HEART_RATE_TEST_RESULT, mapOf(
               "deviceId" to (module.connectedDeviceId ?: ""),
@@ -96,7 +95,7 @@ fun ModuleDefinition.defineTests(module: VeepooSDKModule) {
       object : IBPDetectDataListener {
         override fun onDataChange(bpData: BpData?) {
           if (bpData != null) {
-            val testState = bpData.status?.toString() ?: "unknown"
+            val testState = normalizeTestState(bpData.status?.toString())
             
             module.sendEvent(BLOOD_PRESSURE_TEST_RESULT, mapOf(
               "deviceId" to (module.connectedDeviceId ?: ""),
@@ -160,7 +159,7 @@ fun ModuleDefinition.defineTests(module: VeepooSDKModule) {
       object : ISpo2hDataListener {
         override fun onSpO2HADataChange(spo2hData: Spo2hData?) {
           if (spo2hData != null) {
-            val testState = if (spo2hData.isChecking) "testing" else "over"
+            val testState = normalizeTestState(spo2hData.deviceState?.toString())
             
             module.sendEvent(BLOOD_OXYGEN_TEST_RESULT, mapOf(
               "deviceId" to (module.connectedDeviceId ?: ""),
@@ -227,7 +226,12 @@ fun ModuleDefinition.defineTests(module: VeepooSDKModule) {
       object : ITemptureDetectDataListener {
         override fun onDataChange(data: TemptureDetectData?) {
           if (data != null) {
-            val testState = if (data.oprate == 1) "over" else "testing"
+            val testState = when {
+              data.oprate == 1 -> "over"
+              data.progress <= 0 -> "start"
+              data.progress >= 100 -> "over"
+              else -> "testing"
+            }
             
             module.sendEvent(TEMPERATURE_TEST_RESULT, mapOf(
               "deviceId" to (module.connectedDeviceId ?: ""),
@@ -235,7 +239,8 @@ fun ModuleDefinition.defineTests(module: VeepooSDKModule) {
                 "state" to testState,
                 "value" to data.tempture.toDouble(),
                 "deviceState" to data.deviceState,
-                "progress" to data.progress
+                "progress" to data.progress,
+                "isEnd" to (data.oprate == 1 || data.progress >= 100)
               )
             ))
           }
@@ -310,12 +315,20 @@ fun ModuleDefinition.defineTests(module: VeepooSDKModule) {
       },
       object : IBloodGlucoseChangeListener {
         override fun onBloodGlucoseDetect(progress: Int, bloodGlucose: Float, level: EBloodGlucoseRiskLevel?) {
+          val state = when {
+            progress <= 0 -> "start"
+            progress >= 100 -> "over"
+            else -> "testing"
+          }
+          
           module.sendEvent(BLOOD_GLUCOSE_DATA, mapOf(
             "deviceId" to (module.connectedDeviceId ?: ""),
             "data" to mapOf(
               "glucose" to bloodGlucose.toDouble(),
               "progress" to progress,
               "level" to (level?.toString() ?: "UNKNOWN"),
+              "state" to state,
+              "isEnd" to (progress >= 100),
               "timestamp" to System.currentTimeMillis()
             )
           ))
@@ -326,7 +339,9 @@ fun ModuleDefinition.defineTests(module: VeepooSDKModule) {
             "deviceId" to (module.connectedDeviceId ?: ""),
             "data" to mapOf(
               "progress" to 100,
+              "state" to "over",
               "status" to "STOPPED",
+              "isEnd" to true,
               "timestamp" to System.currentTimeMillis()
             )
           ))
@@ -337,7 +352,9 @@ fun ModuleDefinition.defineTests(module: VeepooSDKModule) {
             "deviceId" to (module.connectedDeviceId ?: ""),
             "data" to mapOf(
               "error" to "Detect error: $status",
+              "state" to "error",
               "status" to (status?.toString() ?: "UNKNOWN"),
+              "isEnd" to true,
               "timestamp" to System.currentTimeMillis()
             )
           ))

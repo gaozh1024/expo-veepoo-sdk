@@ -4,10 +4,11 @@ import type {
   BloodOxygenTestResult,
   TemperatureTestResult,
   StressData,
-  BloodGlucoseData,
+  BloodGlucoseTestResult,
   VeepooDevice,
   SportStepData,
   HalfHourData,
+  TestState,
 } from '@gaozh1024/expo-veepoo-sdk';
 
 export { 
@@ -16,10 +17,11 @@ export {
   BloodOxygenTestResult,
   TemperatureTestResult,
   StressData,
-  BloodGlucoseData,
+  BloodGlucoseTestResult,
   VeepooDevice,
   SportStepData,
   HalfHourData,
+  TestState,
 };
 
 export interface SleepDataItem {

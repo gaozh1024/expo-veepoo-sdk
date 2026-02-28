@@ -3,10 +3,10 @@ package expo.modules.veepoo
 import android.util.Log
 import com.veepoo.protocol.VPOperateManager
 import expo.modules.kotlin.Promise
-import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 
 // SDK 初始化
-fun ModuleDefinition.defineInitialization(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.defineInitialization(module: VeepooSDKModule) {
   AsyncFunction("init") { promise: Promise ->
     try {
       val manager = VPOperateManager.getInstance()

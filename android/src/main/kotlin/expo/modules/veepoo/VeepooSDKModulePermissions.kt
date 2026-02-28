@@ -2,10 +2,10 @@ package expo.modules.veepoo
 
 import android.util.Log
 import expo.modules.kotlin.Promise
-import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 
 // 权限与蓝牙状态
-fun ModuleDefinition.definePermissions(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.definePermissions(module: VeepooSDKModule) {
   AsyncFunction("isBluetoothEnabled") { promise: Promise ->
     promise.resolve(module.isBluetoothEnabled())
   }

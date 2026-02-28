@@ -6,8 +6,6 @@ import android.os.Looper
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
-private const val TAG = "VeepooSDKModule"
-
 // Expo 模块入口
 class VeepooSDKModule : Module() {
   @Volatile var isScanning = false
@@ -18,6 +16,7 @@ class VeepooSDKModule : Module() {
   val cachedDeviceFunctions = mutableMapOf<String, Map<String, Any?>>()
   @Volatile var cachedDeviceVersion: String = ""
   @Volatile var cachedDeviceNumber: String = ""
+  @Volatile var watchday: Int = 3  // 设备存储天数，默认3天
   val context: Context
     get() = appContext.reactContext
       ?: appContext.currentActivity?.applicationContext

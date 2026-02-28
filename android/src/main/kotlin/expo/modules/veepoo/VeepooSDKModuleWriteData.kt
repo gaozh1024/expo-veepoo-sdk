@@ -1,10 +1,10 @@
 package expo.modules.veepoo
 
 import expo.modules.kotlin.Promise
-import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 
 // 写入与设置
-fun ModuleDefinition.defineWriteData(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.defineWriteData(module: VeepooSDKModule) {
   AsyncFunction("readAutoMeasureSetting") { promise: Promise ->
     promise.resolve(emptyList<Any>())
   }

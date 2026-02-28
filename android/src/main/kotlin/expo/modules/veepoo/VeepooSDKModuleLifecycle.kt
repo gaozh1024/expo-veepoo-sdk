@@ -1,10 +1,10 @@
 package expo.modules.veepoo
 
 import android.util.Log
-import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 
 // 事件监听生命周期
-fun ModuleDefinition.defineLifecycle(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.defineLifecycle(module: VeepooSDKModule) {
   OnStartObserving {
     Log.d("VeepooSDKModule", "Started observing events")
   }

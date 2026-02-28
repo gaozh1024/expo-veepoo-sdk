@@ -17,7 +17,6 @@ import com.veepoo.protocol.model.datas.BloodGlucoseManualData
 import com.veepoo.protocol.model.datas.BloodOxygenManualData
 import com.veepoo.protocol.model.datas.BloodPressureManualData
 import com.veepoo.protocol.model.datas.BodyTemperatureManualData
-import com.veepoo.protocol.model.datas.CustomSettingData
 import com.veepoo.protocol.model.datas.EmotionManualData
 import com.veepoo.protocol.model.datas.FatigueManualData
 import com.veepoo.protocol.model.datas.FunctionDeviceSupportData
@@ -29,12 +28,13 @@ import com.veepoo.protocol.model.datas.MiniCheckupManualData
 import com.veepoo.protocol.model.datas.PwdData
 import com.veepoo.protocol.model.datas.PressureManualData
 import com.veepoo.protocol.model.datas.SkinConductanceManualData
-import com.veepoo.protocol.model.enums.DeviceFunctionPackage1
-import com.veepoo.protocol.model.enums.DeviceFunctionPackage2
-import com.veepoo.protocol.model.enums.DeviceFunctionPackage3
-import com.veepoo.protocol.model.enums.DeviceFunctionPackage4
-import com.veepoo.protocol.model.enums.DeviceFunctionPackage5
+import com.veepoo.protocol.model.datas.DeviceFunctionPackage1
+import com.veepoo.protocol.model.datas.DeviceFunctionPackage2
+import com.veepoo.protocol.model.datas.DeviceFunctionPackage3
+import com.veepoo.protocol.model.datas.DeviceFunctionPackage4
+import com.veepoo.protocol.model.datas.DeviceFunctionPackage5
 import com.veepoo.protocol.model.enums.DeviceManualDataType
+import com.veepoo.protocol.model.settings.CustomSettingData
 import expo.modules.kotlin.Promise
 
 // 模块基础工具方法
@@ -72,6 +72,22 @@ fun toSupportedStatus(value: Any?): String {
       if (normalized.contains("support") || normalized == "1" || normalized == "open") "support" else "unsupported"
     }
     else -> "unsupported"
+  }
+}
+
+// 统一测试状态转换
+fun normalizeTestState(rawState: String?): String {
+  if (rawState == null) return "unknown"
+  val normalized = rawState.lowercase()
+  return when {
+    normalized.contains("idle") || normalized == "free" -> "idle"
+    normalized.contains("start") || normalized == "begin" -> "start"
+    normalized.contains("testing") || normalized == "detect" || normalized == "detect_sp" || normalized.contains("progress") -> "testing"
+    normalized.contains("over") || normalized.contains("finish") || normalized.contains("complete") || normalized.contains("success") || normalized.contains("_normal") -> "over"
+    normalized.contains("notwear") || normalized.contains("unpass_wear") || normalized.contains("nowear") -> "notWear"
+    normalized.contains("busy") || normalized.contains("devicebusy") -> "deviceBusy"
+    normalized.contains("error") || normalized.contains("fail") || normalized.contains("charging") || normalized.contains("charg_low") -> "error"
+    else -> normalized
   }
 }
 
