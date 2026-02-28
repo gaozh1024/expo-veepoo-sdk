@@ -211,7 +211,7 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
                 if (timeData != null) {
                   val timeStr = String.format("%02d:%02d", timeData.hour, timeData.minute)
                   
-                  val item = mapOf(
+                  val item = mutableMapOf(
                     "time" to timeStr,
                     "heartValue" to data.rateValue,
                     "stepValue" to data.stepValue,
@@ -225,6 +225,16 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
                     "stressValue" to data.pressure,
                     "met" to data.met.toDouble()
                   )
+                  
+                  data.oxygens?.let { item["oxygens"] = it.toList() }
+                  data.ppgs?.let { item["ppgs"] = it.toList() }
+                  data.ecgs?.let { item["ecgs"] = it.toList() }
+                  data.resRates?.let { item["resRates"] = it.toList() }
+                  data.sleepStates?.let { item["sleepStates"] = it.toList() }
+                  data.apneaResults?.let { item["apneaResults"] = it.toList() }
+                  data.hypoxiaTimes?.let { item["hypoxiaTimes"] = it.toList() }
+                  data.cardiacLoads?.let { item["cardiacLoads"] = it.toList() }
+                  data.bloodGlucose.let { item["bloodGlucose"] = it }
                   
                   module.sendEvent(ORIGIN_FIVE_MINUTE_DATA, mapOf(
                     "deviceId" to (module.connectedDeviceId ?: ""),
@@ -268,6 +278,46 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
         override fun onOriginSpo2OriginListDataChange(dataList: List<Spo2hOriginData>?) {
           if (dataList != null && dataList.isNotEmpty()) {
             Log.d(TAG, "onOriginSpo2OriginListDataChange: ${dataList.size} records")
+            
+            try {
+              val items = mutableListOf<Map<String, Any>>()
+              
+              for (data in dataList) {
+                val timeData = data.getmTime()
+                val timeStr = if (timeData != null) {
+                  String.format("%02d:%02d", timeData.hour, timeData.minute)
+                } else {
+                  ""
+                }
+                
+                val item = mutableMapOf<String, Any>(
+                  "time" to timeStr,
+                  "date" to (data.date ?: ""),
+                  "heartValue" to data.heartValue,
+                  "value" to data.oxygenValue,
+                  "rate" to data.respirationRate,
+                  "isHypoxia" to data.isHypoxia,
+                  "cardiacLoad" to data.cardiacLoad,
+                  "temp1" to data.temp1,
+                  "sportValue" to data.sportValue,
+                  "apneaResult" to data.apneaResult,
+                  "hypoxiaTime" to data.hypoxiaTime,
+                  "hypopnea" to data.hypopnea,
+                  "stepValue" to data.stepValue,
+                  "allPackNumber" to data.allPackNumner,
+                  "currentPackNumber" to data.currentPackNumber
+                )
+                
+                items.add(item)
+              }
+              
+              module.sendEvent(ORIGIN_SPO2_DATA, mapOf(
+                "deviceId" to (module.connectedDeviceId ?: ""),
+                "data" to items
+              ))
+            } catch (e: Exception) {
+              Log.e(TAG, "Error processing SPO2 origin data", e)
+            }
           }
         }
         
@@ -377,7 +427,7 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
                 if (timeData != null) {
                   val timeStr = String.format("%02d:%02d", timeData.hour, timeData.minute)
                   
-                  val item = mapOf(
+                  val item = mutableMapOf(
                     "time" to timeStr,
                     "heartValue" to data.rateValue,
                     "stepValue" to data.stepValue,
@@ -391,6 +441,16 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
                     "stressValue" to data.pressure,
                     "met" to data.met.toDouble()
                   )
+                  
+                  data.oxygens?.let { item["oxygens"] = it.toList() }
+                  data.ppgs?.let { item["ppgs"] = it.toList() }
+                  data.ecgs?.let { item["ecgs"] = it.toList() }
+                  data.resRates?.let { item["resRates"] = it.toList() }
+                  data.sleepStates?.let { item["sleepStates"] = it.toList() }
+                  data.apneaResults?.let { item["apneaResults"] = it.toList() }
+                  data.hypoxiaTimes?.let { item["hypoxiaTimes"] = it.toList() }
+                  data.cardiacLoads?.let { item["cardiacLoads"] = it.toList() }
+                  data.bloodGlucose.let { item["bloodGlucose"] = it }
                   
                   module.sendEvent(ORIGIN_FIVE_MINUTE_DATA, mapOf(
                     "deviceId" to (module.connectedDeviceId ?: ""),
@@ -418,7 +478,51 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
         
         override fun onOriginHRVOriginListDataChange(dataList: List<HRVOriginData>?) {}
         
-        override fun onOriginSpo2OriginListDataChange(dataList: List<Spo2hOriginData>?) {}
+        override fun onOriginSpo2OriginListDataChange(dataList: List<Spo2hOriginData>?) {
+          if (dataList != null && dataList.isNotEmpty()) {
+            Log.d(TAG, "readDeviceAllData: onOriginSpo2OriginListDataChange: ${dataList.size} records")
+            
+            try {
+              val items = mutableListOf<Map<String, Any>>()
+              
+              for (data in dataList) {
+                val timeData = data.getmTime()
+                val timeStr = if (timeData != null) {
+                  String.format("%02d:%02d", timeData.hour, timeData.minute)
+                } else {
+                  ""
+                }
+                
+                val item = mutableMapOf<String, Any>(
+                  "time" to timeStr,
+                  "date" to (data.date ?: ""),
+                  "heartValue" to data.heartValue,
+                  "value" to data.oxygenValue,
+                  "rate" to data.respirationRate,
+                  "isHypoxia" to data.isHypoxia,
+                  "cardiacLoad" to data.cardiacLoad,
+                  "temp1" to data.temp1,
+                  "sportValue" to data.sportValue,
+                  "apneaResult" to data.apneaResult,
+                  "hypoxiaTime" to data.hypoxiaTime,
+                  "hypopnea" to data.hypopnea,
+                  "stepValue" to data.stepValue,
+                  "allPackNumber" to data.allPackNumner,
+                  "currentPackNumber" to data.currentPackNumber
+                )
+                
+                items.add(item)
+              }
+              
+              module.sendEvent(ORIGIN_SPO2_DATA, mapOf(
+                "deviceId" to (module.connectedDeviceId ?: ""),
+                "data" to items
+              ))
+            } catch (e: Exception) {
+              Log.e(TAG, "Error processing SPO2 origin data in readDeviceAllData", e)
+            }
+          }
+        }
         
         override fun onReadOriginProgressDetail(day: Int, date: String?, allPack: Int, currentPack: Int) {
           val progress = if (allPack > 0) currentPack.toDouble() / allPack.toDouble() else 0.0
@@ -725,7 +829,7 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
               if (timeData != null) {
                 val timeStr = String.format("%02d:%02d", timeData.hour, timeData.minute)
                 
-                val item = mapOf(
+                val item = mutableMapOf(
                   "time" to timeStr,
                   "heartValue" to data.rateValue,
                   "stepValue" to data.stepValue,
@@ -740,6 +844,16 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
                   "met" to data.met.toDouble()
                 )
                 
+                data.oxygens?.let { item["oxygens"] = it.toList() }
+                data.ppgs?.let { item["ppgs"] = it.toList() }
+                data.ecgs?.let { item["ecgs"] = it.toList() }
+                data.resRates?.let { item["resRates"] = it.toList() }
+                data.sleepStates?.let { item["sleepStates"] = it.toList() }
+                data.apneaResults?.let { item["apneaResults"] = it.toList() }
+                data.hypoxiaTimes?.let { item["hypoxiaTimes"] = it.toList() }
+                data.cardiacLoads?.let { item["cardiacLoads"] = it.toList() }
+                data.bloodGlucose.let { item["bloodGlucose"] = it }
+                
                 dataList.add(item)
               }
             }
@@ -750,7 +864,51 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
         
         override fun onOriginHRVOriginListDataChange(dataList: List<HRVOriginData>?) {}
         
-        override fun onOriginSpo2OriginListDataChange(dataList: List<Spo2hOriginData>?) {}
+        override fun onOriginSpo2OriginListDataChange(spo2List: List<Spo2hOriginData>?) {
+          if (spo2List != null && spo2List.isNotEmpty()) {
+            Log.d(TAG, "readOriginData: onOriginSpo2OriginListDataChange: ${spo2List.size} records")
+            
+            try {
+              val items = mutableListOf<Map<String, Any>>()
+              
+              for (data in spo2List) {
+                val timeData = data.getmTime()
+                val timeStr = if (timeData != null) {
+                  String.format("%02d:%02d", timeData.hour, timeData.minute)
+                } else {
+                  ""
+                }
+                
+                val item = mutableMapOf<String, Any>(
+                  "time" to timeStr,
+                  "date" to (data.date ?: ""),
+                  "heartValue" to data.heartValue,
+                  "value" to data.oxygenValue,
+                  "rate" to data.respirationRate,
+                  "isHypoxia" to data.isHypoxia,
+                  "cardiacLoad" to data.cardiacLoad,
+                  "temp1" to data.temp1,
+                  "sportValue" to data.sportValue,
+                  "apneaResult" to data.apneaResult,
+                  "hypoxiaTime" to data.hypoxiaTime,
+                  "hypopnea" to data.hypopnea,
+                  "stepValue" to data.stepValue,
+                  "allPackNumber" to data.allPackNumner,
+                  "currentPackNumber" to data.currentPackNumber
+                )
+                
+                items.add(item)
+              }
+              
+              module.sendEvent(ORIGIN_SPO2_DATA, mapOf(
+                "deviceId" to (module.connectedDeviceId ?: ""),
+                "data" to items
+              ))
+            } catch (e: Exception) {
+              Log.e(TAG, "Error processing SPO2 origin data in readOriginData", e)
+            }
+          }
+        }
         
         override fun onReadOriginProgressDetail(day: Int, date: String?, allPack: Int, currentPack: Int) {}
         

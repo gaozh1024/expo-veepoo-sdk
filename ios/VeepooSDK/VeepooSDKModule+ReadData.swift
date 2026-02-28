@@ -157,29 +157,41 @@ extension VeepooSDKModule {
       
       let dateStr = self.getDateString(dayOffset: 0)
       
+      // 读取5分钟原始数据
       if let originData = VPDataBaseOperation.veepooSDKGetOriginalData(withDate: dateStr, andTableID: deviceAddress) as? [String: [String: Any]] {
-        var halfHourDataList: [[String: Any]] = []
-        
         for (time, data) in originData {
-          let item: [String: Any] = [
+          var item: [String: Any] = [
             "time": time,
             "heartValue": data["heartValue"] ?? 0,
             "stepValue": data["stepValue"] ?? 0,
             "calValue": data["calValue"] ?? 0,
             "disValue": data["disValue"] ?? 0,
-            "systolic": data["highValue"] ?? 0,
-            "diastolic": data["lowValue"] ?? 0,
+            "sportValue": data["sportValue"] ?? 0,
+            "systolic": data["systolic"] ?? data["highValue"] ?? 0,
+            "diastolic": data["diastolic"] ?? data["lowValue"] ?? 0,
             "spo2Value": data["spo2Value"] ?? 0,
             "tempValue": data["tempValue"] ?? 0,
-            "stressValue": data["stressValue"] ?? 0
+            "stressValue": data["stress"] ?? data["stressValue"] ?? 0,
+            "met": data["met"] ?? 0
           ]
-          halfHourDataList.append(item)
-        }
-        
-        for data in halfHourDataList {
-          self.sendEvent(ORIGIN_HALF_HOUR_DATA, [
+          
+          if let ppgs = data["ppgs"] as? [Int] {
+            item["ppgs"] = ppgs
+          }
+          if let ecgs = data["ecgs"] as? [Int] {
+            item["ecgs"] = ecgs
+          }
+          if let oxygens = data["oxygens"] as? [Int] {
+            item["oxygens"] = oxygens
+          }
+          if let bloodGlucose = data["bloodGlucose"] as? Int {
+            item["bloodGlucose"] = bloodGlucose
+          }
+          
+          // 发送5分钟数据事件
+          self.sendEvent(ORIGIN_FIVE_MINUTE_DATA, [
             "deviceId": self.connectedDeviceId ?? "",
-            "data": data
+            "data": item
           ])
         }
         
@@ -194,6 +206,7 @@ extension VeepooSDKModule {
         ])
       }
       
+      // 读取30分钟数据
       if let halfHourResult = VPDataBaseOperation.veepooSDKGetOriginalChangeHalfHourData(withDate: dateStr, andTableID: deviceAddress) as? [String: [String: String]] {
         for (time, item) in halfHourResult {
           var dataItem: [String: Any] = ["time": time]
@@ -419,20 +432,34 @@ extension VeepooSDKModule {
       
       if let originData = VPDataBaseOperation.veepooSDKGetOriginalData(withDate: dateStr, andTableID: deviceAddress) as? [String: [String: Any]] {
         for (time, data) in originData {
-          let item: [String: Any] = [
+          var item: [String: Any] = [
             "time": time,
             "heartValue": data["heartValue"] ?? 0,
             "stepValue": data["stepValue"] ?? 0,
             "calValue": data["calValue"] ?? 0,
             "disValue": data["disValue"] ?? 0,
             "sportValue": data["sportValue"] ?? 0,
-            "systolic": data["highValue"] ?? 0,
-            "diastolic": data["lowValue"] ?? 0,
+            "systolic": data["systolic"] ?? data["highValue"] ?? 0,
+            "diastolic": data["diastolic"] ?? data["lowValue"] ?? 0,
             "spo2Value": data["spo2Value"] ?? 0,
             "tempValue": data["tempValue"] ?? 0,
-            "stressValue": data["stressValue"] ?? 0,
+            "stressValue": data["stress"] ?? data["stressValue"] ?? 0,
             "met": data["met"] ?? 0
           ]
+          
+          if let ppgs = data["ppgs"] as? [Int] {
+            item["ppgs"] = ppgs
+          }
+          if let ecgs = data["ecgs"] as? [Int] {
+            item["ecgs"] = ecgs
+          }
+          if let oxygens = data["oxygens"] as? [Int] {
+            item["oxygens"] = oxygens
+          }
+          if let bloodGlucose = data["bloodGlucose"] as? Int {
+            item["bloodGlucose"] = bloodGlucose
+          }
+          
           resultList.append(item)
         }
       }

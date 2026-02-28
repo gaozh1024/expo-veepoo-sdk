@@ -43,9 +43,9 @@ export interface NativeVeepooSDKInterface {
     readSleepData(date?: string): Promise<SleepData[]>;
     readSportStepData(date?: string): Promise<SportStepData>;
     readOriginData(dayOffset?: number): Promise<OriginData[]>;
-    readAutoMeasureSetting(): Promise<AutoMeasureSetting[]>;
-    modifyAutoMeasureSetting(setting: AutoMeasureSetting): Promise<void>;
-    setLanguage(language: Language): Promise<boolean>;
+  readAutoMeasureSetting(): Promise<AutoMeasureSetting[]>;
+  modifyAutoMeasureSetting(setting: Partial<AutoMeasureSetting>): Promise<AutoMeasureSetting[]>;
+  setLanguage(language: Language): Promise<boolean>;
     startHeartRateTest(): Promise<void>;
     stopHeartRateTest(): Promise<void>;
     startBloodPressureTest(): Promise<void>;
@@ -163,7 +163,7 @@ class VeepooSDKNativeWrapper implements NativeVeepooSDKInterface {
     return this.native.readAutoMeasureSetting();
   }
 
-  async modifyAutoMeasureSetting(setting: AutoMeasureSetting): Promise<void> {
+  async modifyAutoMeasureSetting(setting: Partial<AutoMeasureSetting>): Promise<AutoMeasureSetting[]> {
     return this.native.modifyAutoMeasureSetting(setting);
   }
 

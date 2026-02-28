@@ -199,11 +199,49 @@ extension VeepooSDKModule {
     }
 
     AsyncFunction("startTemperatureTest") { (promise: Promise) in
+      #if targetEnvironment(simulator)
       promise.resolve(nil)
+      #else
+      guard let peripheralManage = self.peripheralManage else {
+        promise.reject("SDK_NOT_INITIALIZED", "Peripheral manager is nil")
+        return
+      }
+
+      peripheralManage.veepooSDK_temperatureTestStart(true) { state, enable, progress, tempValue, originalTempValue in
+        var statusStr = "unknown"
+        var isEnd = false
+
+        switch state {
+        case .unsupported: statusStr = "unsupported"; isEnd = true
+        case .open: statusStr = "testing"
+        case .close: statusStr = "over"; isEnd = true
+        @unknown default: statusStr = "testing"
+        }
+
+        self.sendEvent(TEMPERATURE_TEST_RESULT, [
+          "deviceId": self.connectedDeviceId ?? "",
+          "result": [
+            "state": statusStr,
+            "value": tempValue > 0 ? Double(tempValue) / 10.0 : nil,
+            "originalTemp": originalTempValue > 0 ? Double(originalTempValue) / 10.0 : nil,
+            "progress": progress,
+            "enable": enable,
+            "isEnd": isEnd
+          ]
+        ])
+      }
+
+      promise.resolve(nil)
+      #endif
     }
 
     AsyncFunction("stopTemperatureTest") { (promise: Promise) in
+      #if targetEnvironment(simulator)
       promise.resolve(nil)
+      #else
+      self.peripheralManage?.veepooSDK_temperatureTestStart(false) { _, _, _, _, _ in }
+      promise.resolve(nil)
+      #endif
     }
 
     AsyncFunction("startStressTest") { (promise: Promise) in

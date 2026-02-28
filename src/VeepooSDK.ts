@@ -67,6 +67,7 @@ export class VeepooSDK {
       'readOriginComplete',
       'originFiveMinuteData',
       'originHalfHourData',
+      'originSpo2Data',
       'sleepData',
       'sportStepData',
       'heartRateTestResult',
@@ -248,7 +249,7 @@ export class VeepooSDK {
     return NativeModule.readAutoMeasureSetting();
   }
 
-  async modifyAutoMeasureSetting(setting: AutoMeasureSetting): Promise<void> {
+  async modifyAutoMeasureSetting(setting: Partial<AutoMeasureSetting>): Promise<AutoMeasureSetting[]> {
     return NativeModule.modifyAutoMeasureSetting(setting);
   }
 

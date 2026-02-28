@@ -21,7 +21,9 @@ enum VeepooEvent {
   static let sportStepData = "sportStepData"
   static let readOriginProgress = "readOriginProgress"
   static let readOriginComplete = "readOriginComplete"
+  static let originFiveMinuteData = "originFiveMinuteData"
   static let originHalfHourData = "originHalfHourData"
+  static let originSpo2Data = "originSpo2Data"
   static let error = "error"
 }
 
@@ -45,5 +47,7 @@ let SLEEP_DATA = VeepooEvent.sleepData
 let SPORT_STEP_DATA = VeepooEvent.sportStepData
 let READ_ORIGIN_PROGRESS = VeepooEvent.readOriginProgress
 let READ_ORIGIN_COMPLETE = VeepooEvent.readOriginComplete
+let ORIGIN_FIVE_MINUTE_DATA = VeepooEvent.originFiveMinuteData
 let ORIGIN_HALF_HOUR_DATA = VeepooEvent.originHalfHourData
+let ORIGIN_SPO2_DATA = VeepooEvent.originSpo2Data
 let ERROR = VeepooEvent.error

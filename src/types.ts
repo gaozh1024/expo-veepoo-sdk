@@ -310,6 +310,15 @@ export interface OriginData {
   tempValue: number;
   stressValue: number;
   met: number;
+  oxygens?: number[];
+  ppgs?: number[];
+  ecgs?: number[];
+  resRates?: number[];
+  sleepStates?: number[];
+  apneaResults?: number[];
+  hypoxiaTimes?: number[];
+  cardiacLoads?: number[];
+  bloodGlucose?: number;
 }
 
 export interface HalfHourData {
@@ -350,6 +359,24 @@ export interface BloodOxygenTestResult {
   progress?: number;  // 新增：进度百分比 0-100
 }
 
+export interface Spo2OriginData {
+  time: string;
+  date: string;
+  heartValue: number;
+  value: number;
+  rate: number;
+  isHypoxia: number;
+  cardiacLoad: number;
+  temp1: number;
+  sportValue: number;
+  apneaResult: number;
+  hypoxiaTime: number;
+  hypopnea: number;
+  stepValue: number;
+  allPackNumber: number;
+  currentPackNumber: number;
+}
+
 export interface TemperatureTestResult {
   state: TestState;
   value?: number;
@@ -376,11 +403,17 @@ export interface ReadOriginProgress {
 }
 
 export interface AutoMeasureSetting {
-  type: string;
-  enabled: boolean;
-  startTime?: string;
-  endTime?: string;
-  interval?: number;
+  protocolType: number;
+  funType: number;
+  isSwitchOpen: boolean;
+  stepUnit: number;
+  isSlotModify: boolean;
+  isIntervalModify: boolean;
+  supportStartMinute: number;
+  supportEndMinute: number;
+  measureInterval: number;
+  currentStartMinute: number;
+  currentEndMinute: number;
 }
 
 export type Language =
@@ -449,6 +482,7 @@ export type VeepooEvent =
   | 'readOriginComplete'
   | 'originFiveMinuteData'
   | 'originHalfHourData'
+  | 'originSpo2Data'
   | 'sleepData'
   | 'sportStepData'
   | 'heartRateTestResult'
@@ -479,6 +513,7 @@ export interface VeepooEventPayload {
   readOriginComplete: { deviceId: string; success: boolean };
   originFiveMinuteData: { deviceId: string; data: OriginData };
   originHalfHourData: { deviceId: string; data: HalfHourData };
+  originSpo2Data: { deviceId: string; data: Spo2OriginData[] };
   sleepData: { deviceId: string; date: string; data: SleepData };
   sportStepData: { deviceId: string; date: string; data: SportStepData };
   heartRateTestResult: { deviceId: string; result: HeartRateTestResult };
