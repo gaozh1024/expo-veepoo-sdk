@@ -150,7 +150,63 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
       promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
       return@AsyncFunction
     }
-    promise.resolve(emptyMap<String, Any>())
+    
+    val manager = VPOperateManager.getInstance() ?: run {
+      promise.reject("SDK_NOT_INITIALIZED", "SDK manager is null", null)
+      return@AsyncFunction
+    }
+    
+    Log.d(TAG, "readSocialMsgData: reading social message data")
+    
+    manager.readSocialMsg(
+      object : IBleWriteResponse {
+        override fun onResponse(code: Int) {
+          if (code != Code.REQUEST_SUCCESS) {
+            Log.e(TAG, "readSocialMsgData: command failed with code $code")
+          }
+        }
+      },
+      object : ISocialMsgDataListener {
+        override fun onSocialMsgSupportDataChange(data: FunctionSocailMsgData?) {
+          if (data != null) {
+            Log.d(TAG, "readSocialMsgData: received social message data")
+            
+            val result = mapOf(
+              "phone" to toSupportedStatus(data.phone),
+              "sms" to toSupportedStatus(data.sms),
+              "wechat" to toSupportedStatus(data.wechat),
+              "qq" to toSupportedStatus(data.qq),
+              "facebook" to toSupportedStatus(data.facebook),
+              "twitter" to toSupportedStatus(data.twitter),
+              "instagram" to toSupportedStatus(data.instagram),
+              "linkedin" to toSupportedStatus(data.linkedin),
+              "whatsapp" to toSupportedStatus(data.whatsapp),
+              "line" to toSupportedStatus(data.line),
+              "skype" to toSupportedStatus(data.skype),
+              "email" to toSupportedStatus(data.email),
+              "calendar" to toSupportedStatus(data.calendar),
+              "other" to toSupportedStatus(data.other)
+            )
+            
+            module.sendEvent(SOCIAL_MSG_DATA, mapOf(
+              "deviceId" to (module.connectedDeviceId ?: ""),
+              "data" to result
+            ))
+            
+            promise.resolve(result)
+          } else {
+            Log.d(TAG, "readSocialMsgData: data is null")
+            promise.reject("READ_FAILED", "Social message data is null", null)
+          }
+        }
+        
+        override fun onSocialMsgSupportDataChange2(data: FunctionSocailMsgData?) {
+          if (data != null) {
+            Log.d(TAG, "readSocialMsgData: received social message data (callback 2)")
+          }
+        }
+      }
+    )
   }
 
   AsyncFunction("readDeviceVersion") { promise: Promise ->
@@ -226,14 +282,14 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
                     "met" to data.met.toDouble()
                   )
                   
-                  data.oxygens?.let { item["oxygens"] = it.toList() }
-                  data.ppgs?.let { item["ppgs"] = it.toList() }
-                  data.ecgs?.let { item["ecgs"] = it.toList() }
-                  data.resRates?.let { item["resRates"] = it.toList() }
-                  data.sleepStates?.let { item["sleepStates"] = it.toList() }
-                  data.apneaResults?.let { item["apneaResults"] = it.toList() }
-                  data.hypoxiaTimes?.let { item["hypoxiaTimes"] = it.toList() }
-                  data.cardiacLoads?.let { item["cardiacLoads"] = it.toList() }
+                  data.oxygens?.let { item["oxygens"] = ArrayList(it) }
+                  data.ppgs?.let { item["ppgs"] = ArrayList(it) }
+                  data.ecgs?.let { item["ecgs"] = ArrayList(it) }
+                  data.resRates?.let { item["resRates"] = ArrayList(it) }
+                  data.sleepStates?.let { item["sleepStates"] = ArrayList(it) }
+                  data.apneaResults?.let { item["apneaResults"] = ArrayList(it) }
+                  data.hypoxiaTimes?.let { item["hypoxiaTimes"] = ArrayList(it) }
+                  data.cardiacLoads?.let { item["cardiacLoads"] = ArrayList(it) }
                   data.bloodGlucose.let { item["bloodGlucose"] = it }
                   
                   module.sendEvent(ORIGIN_FIVE_MINUTE_DATA, mapOf(
@@ -442,14 +498,14 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
                     "met" to data.met.toDouble()
                   )
                   
-                  data.oxygens?.let { item["oxygens"] = it.toList() }
-                  data.ppgs?.let { item["ppgs"] = it.toList() }
-                  data.ecgs?.let { item["ecgs"] = it.toList() }
-                  data.resRates?.let { item["resRates"] = it.toList() }
-                  data.sleepStates?.let { item["sleepStates"] = it.toList() }
-                  data.apneaResults?.let { item["apneaResults"] = it.toList() }
-                  data.hypoxiaTimes?.let { item["hypoxiaTimes"] = it.toList() }
-                  data.cardiacLoads?.let { item["cardiacLoads"] = it.toList() }
+                  data.oxygens?.let { item["oxygens"] = ArrayList(it) }
+                  data.ppgs?.let { item["ppgs"] = ArrayList(it) }
+                  data.ecgs?.let { item["ecgs"] = ArrayList(it) }
+                  data.resRates?.let { item["resRates"] = ArrayList(it) }
+                  data.sleepStates?.let { item["sleepStates"] = ArrayList(it) }
+                  data.apneaResults?.let { item["apneaResults"] = ArrayList(it) }
+                  data.hypoxiaTimes?.let { item["hypoxiaTimes"] = ArrayList(it) }
+                  data.cardiacLoads?.let { item["cardiacLoads"] = ArrayList(it) }
                   data.bloodGlucose.let { item["bloodGlucose"] = it }
                   
                   module.sendEvent(ORIGIN_FIVE_MINUTE_DATA, mapOf(
@@ -844,14 +900,14 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
                   "met" to data.met.toDouble()
                 )
                 
-                data.oxygens?.let { item["oxygens"] = it.toList() }
-                data.ppgs?.let { item["ppgs"] = it.toList() }
-                data.ecgs?.let { item["ecgs"] = it.toList() }
-                data.resRates?.let { item["resRates"] = it.toList() }
-                data.sleepStates?.let { item["sleepStates"] = it.toList() }
-                data.apneaResults?.let { item["apneaResults"] = it.toList() }
-                data.hypoxiaTimes?.let { item["hypoxiaTimes"] = it.toList() }
-                data.cardiacLoads?.let { item["cardiacLoads"] = it.toList() }
+                data.oxygens?.let { item["oxygens"] = ArrayList(it) }
+                data.ppgs?.let { item["ppgs"] = ArrayList(it) }
+                data.ecgs?.let { item["ecgs"] = ArrayList(it) }
+                data.resRates?.let { item["resRates"] = ArrayList(it) }
+                data.sleepStates?.let { item["sleepStates"] = ArrayList(it) }
+                data.apneaResults?.let { item["apneaResults"] = ArrayList(it) }
+                data.hypoxiaTimes?.let { item["hypoxiaTimes"] = ArrayList(it) }
+                data.cardiacLoads?.let { item["cardiacLoads"] = ArrayList(it) }
                 data.bloodGlucose.let { item["bloodGlucose"] = it }
                 
                 dataList.add(item)

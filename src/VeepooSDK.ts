@@ -19,6 +19,7 @@ import type {
   OriginData,
   VeepooEvent,
   VeepooEventPayload,
+  PermissionsResult,
 } from './types.js';
 import type { NativeVeepooSDKInterface } from './NativeVeepooSDK.js';
 
@@ -133,12 +134,12 @@ export class VeepooSDK {
     }
   }
 
-  async requestPermissions(): Promise<boolean> {
+  async requestPermissions(): Promise<PermissionsResult> {
     try {
       return await NativeModule.requestPermissions();
     } catch (error) {
       this.handleError(error, 'PERMISSION_DENIED');
-      return false;
+      return { granted: false, status: 'denied', canAskAgain: true };
     }
   }
 

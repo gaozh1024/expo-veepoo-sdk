@@ -53,6 +53,14 @@ export interface DeviceTimeSetting {
 export type BluetoothState = 'unknown' | 'resetting' | 'unsupported' | 'unauthorized' | 'poweredOff' | 'poweredOn';
 export type BluetoothAuthorization = 'notDetermined' | 'restricted' | 'denied' | 'allowedAlways';
 
+export type PermissionStatus = 'granted' | 'denied' | 'never_ask_again';
+
+export interface PermissionsResult {
+  granted: boolean;
+  status: PermissionStatus;
+  canAskAgain?: boolean;
+}
+
 export interface BluetoothStatus {
   state: BluetoothState;
   stateName: string;

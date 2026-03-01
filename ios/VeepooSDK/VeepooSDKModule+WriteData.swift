@@ -1,5 +1,42 @@
 import ExpoModulesCore
 
+private let LANGUAGE_MAP: [String: UInt8] = [
+  "chinese": 1,
+  "english": 2,
+  "japanese": 3,
+  "korean": 4,
+  "german": 5,
+  "russian": 6,
+  "spanish": 7,
+  "italian": 8,
+  "french": 9,
+  "vietnamese": 10,
+  "portuguese": 11,
+  "chineseTraditional": 12,
+  "thai": 13,
+  "polish": 14,
+  "swedish": 15,
+  "turkish": 16,
+  "dutch": 17,
+  "czech": 18,
+  "arabic": 19,
+  "hungarian": 20,
+  "greek": 21,
+  "romanian": 22,
+  "slovak": 23,
+  "indonesian": 24,
+  "brazilianPortuguese": 25,
+  "croatian": 26,
+  "lithuanian": 27,
+  "ukrainian": 28,
+  "hindi": 29,
+  "hebrew": 30,
+  "danish": 31,
+  "persian": 32,
+  "finnish": 33,
+  "malay": 34
+]
+
 private func autoMeasureModelToMap(_ model: VPAutoMonitTestModel) -> [String: Any] {
   return [
     "protocolType": 1,
@@ -107,7 +144,7 @@ extension VeepooSDKModule {
       #endif
     }
 
-    AsyncFunction("setLanguage") { (_: Int, promise: Promise) in
+    AsyncFunction("setLanguage") { (language: String, promise: Promise) in
       #if targetEnvironment(simulator)
       promise.resolve(true)
       #else
@@ -115,7 +152,25 @@ extension VeepooSDKModule {
         promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized")
         return
       }
-      promise.resolve(true)
+      
+      guard let manager = self.bleManager,
+            let peripheralManage = manager.peripheralManage else {
+        promise.reject("DEVICE_NOT_CONNECTED", "No device connected")
+        return
+      }
+      
+      guard let languageType = LANGUAGE_MAP[language] else {
+        promise.reject("INVALID_LANGUAGE", "Unknown language: \(language)")
+        return
+      }
+      
+      peripheralManage.veepooSDKSettingLanguage(languageType) { success in
+        if success {
+          promise.resolve(true)
+        } else {
+          promise.reject("SET_LANGUAGE_FAILED", "Failed to set language")
+        }
+      }
       #endif
     }
   }

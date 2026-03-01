@@ -16,6 +16,7 @@ import type {
   SleepData,
   SportStepData,
   OriginData,
+  PermissionsResult,
 } from './types.js';
 
 const LINKING_ERROR =
@@ -26,7 +27,7 @@ const LINKING_ERROR =
 export interface NativeVeepooSDKInterface {
   init(): Promise<void>;
     isBluetoothEnabled(): Promise<boolean>;
-    requestPermissions(): Promise<boolean>;
+    requestPermissions(): Promise<PermissionsResult>;
     startScan(options?: ScanOptions): Promise<void>;
     stopScan(): Promise<void>;
     connect(deviceId: string, options?: ConnectOptions): Promise<void>;
@@ -91,7 +92,7 @@ class VeepooSDKNativeWrapper implements NativeVeepooSDKInterface {
     return this.native.isBluetoothEnabled();
   }
 
-  async requestPermissions(): Promise<boolean> {
+  async requestPermissions(): Promise<PermissionsResult> {
     return this.native.requestPermissions();
   }
 
