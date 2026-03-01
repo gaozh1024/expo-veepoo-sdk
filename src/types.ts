@@ -446,7 +446,6 @@ export interface SocialMsgData {
   line: FunctionStatus;
   skype: FunctionStatus;
   email: FunctionStatus;
-  calendar: FunctionStatus;
   other: FunctionStatus;
 }
 

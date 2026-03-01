@@ -169,7 +169,7 @@ extension VeepooSDKModule {
             "sportValue": data["sportValue"] ?? 0,
             "systolic": data["systolic"] ?? data["highValue"] ?? 0,
             "diastolic": data["diastolic"] ?? data["lowValue"] ?? 0,
-            "spo2Value": data["spo2Value"] ?? 0,
+            "spo2Value": (data["oxygens"] as? [Int])?.max() ?? data["spo2Value"] ?? 0,
             "tempValue": data["tempValue"] ?? 0,
             "stressValue": data["stress"] ?? data["stressValue"] ?? 0,
             "met": data["met"] ?? 0
@@ -186,6 +186,7 @@ extension VeepooSDKModule {
           }
           if let bloodGlucose = data["bloodGlucose"] as? Int {
             item["bloodGlucose"] = bloodGlucose
+            item["glucose"] = Double(bloodGlucose)
           }
           
           // 发送5分钟数据事件
@@ -441,7 +442,7 @@ extension VeepooSDKModule {
             "sportValue": data["sportValue"] ?? 0,
             "systolic": data["systolic"] ?? data["highValue"] ?? 0,
             "diastolic": data["diastolic"] ?? data["lowValue"] ?? 0,
-            "spo2Value": data["spo2Value"] ?? 0,
+            "spo2Value": (data["oxygens"] as? [Int])?.max() ?? data["spo2Value"] ?? 0,
             "tempValue": data["tempValue"] ?? 0,
             "stressValue": data["stress"] ?? data["stressValue"] ?? 0,
             "met": data["met"] ?? 0
@@ -458,6 +459,7 @@ extension VeepooSDKModule {
           }
           if let bloodGlucose = data["bloodGlucose"] as? Int {
             item["bloodGlucose"] = bloodGlucose
+            item["glucose"] = Double(bloodGlucose)
           }
           
           resultList.append(item)

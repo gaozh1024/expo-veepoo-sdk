@@ -173,18 +173,17 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
             
             val result = mapOf(
               "phone" to toSupportedStatus(data.phone),
-              "sms" to toSupportedStatus(data.sms),
+              "sms" to toSupportedStatus(data.msg),
               "wechat" to toSupportedStatus(data.wechat),
               "qq" to toSupportedStatus(data.qq),
               "facebook" to toSupportedStatus(data.facebook),
               "twitter" to toSupportedStatus(data.twitter),
               "instagram" to toSupportedStatus(data.instagram),
-              "linkedin" to toSupportedStatus(data.linkedin),
-              "whatsapp" to toSupportedStatus(data.whatsapp),
+              "linkedin" to toSupportedStatus(data.linkin),
+              "whatsapp" to toSupportedStatus(data.whats),
               "line" to toSupportedStatus(data.line),
               "skype" to toSupportedStatus(data.skype),
-              "email" to toSupportedStatus(data.email),
-              "calendar" to toSupportedStatus(data.calendar),
+              "email" to toSupportedStatus(data.gmail),
               "other" to toSupportedStatus(data.other)
             )
             
@@ -267,7 +266,7 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
                 if (timeData != null) {
                   val timeStr = String.format("%02d:%02d", timeData.hour, timeData.minute)
                   
-                  val item = mutableMapOf(
+                  val item = mutableMapOf<String, Any>(
                     "time" to timeStr,
                     "heartValue" to data.rateValue,
                     "stepValue" to data.stepValue,
@@ -276,21 +275,24 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
                     "sportValue" to data.sportValue,
                     "systolic" to data.highValue,
                     "diastolic" to data.lowValue,
-                    "spo2Value" to 0,
+                    "spo2Value" to (data.oxygens?.maxOrNull() ?: 0),
                     "tempValue" to data.temperature,
                     "stressValue" to data.pressure,
                     "met" to data.met.toDouble()
                   )
                   
-                  data.oxygens?.let { item["oxygens"] = ArrayList(it) }
-                  data.ppgs?.let { item["ppgs"] = ArrayList(it) }
-                  data.ecgs?.let { item["ecgs"] = ArrayList(it) }
-                  data.resRates?.let { item["resRates"] = ArrayList(it) }
-                  data.sleepStates?.let { item["sleepStates"] = ArrayList(it) }
-                  data.apneaResults?.let { item["apneaResults"] = ArrayList(it) }
-                  data.hypoxiaTimes?.let { item["hypoxiaTimes"] = ArrayList(it) }
-                  data.cardiacLoads?.let { item["cardiacLoads"] = ArrayList(it) }
-                  data.bloodGlucose.let { item["bloodGlucose"] = it }
+                  data.oxygens?.toList()?.let { item["oxygens"] = it }
+                  data.ppgs?.toList()?.let { item["ppgs"] = it }
+                  data.ecgs?.toList()?.let { item["ecgs"] = it }
+                  data.resRates?.toList()?.let { item["resRates"] = it }
+                  data.sleepStates?.toList()?.let { item["sleepStates"] = it }
+                  data.apneaResults?.toList()?.let { item["apneaResults"] = it }
+                  data.hypoxiaTimes?.toList()?.let { item["hypoxiaTimes"] = it }
+                  data.cardiacLoads?.toList()?.let { item["cardiacLoads"] = it }
+                  data.bloodGlucose.let { 
+                    item["bloodGlucose"] = it
+                    item["glucose"] = it.toDouble()
+                  }
                   
                   module.sendEvent(ORIGIN_FIVE_MINUTE_DATA, mapOf(
                     "deviceId" to (module.connectedDeviceId ?: ""),
@@ -483,7 +485,7 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
                 if (timeData != null) {
                   val timeStr = String.format("%02d:%02d", timeData.hour, timeData.minute)
                   
-                  val item = mutableMapOf(
+                  val item = mutableMapOf<String, Any>(
                     "time" to timeStr,
                     "heartValue" to data.rateValue,
                     "stepValue" to data.stepValue,
@@ -492,21 +494,24 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
                     "sportValue" to data.sportValue,
                     "systolic" to data.highValue,
                     "diastolic" to data.lowValue,
-                    "spo2Value" to 0,
+                    "spo2Value" to (data.oxygens?.maxOrNull() ?: 0),
                     "tempValue" to data.temperature,
                     "stressValue" to data.pressure,
                     "met" to data.met.toDouble()
                   )
                   
-                  data.oxygens?.let { item["oxygens"] = ArrayList(it) }
-                  data.ppgs?.let { item["ppgs"] = ArrayList(it) }
-                  data.ecgs?.let { item["ecgs"] = ArrayList(it) }
-                  data.resRates?.let { item["resRates"] = ArrayList(it) }
-                  data.sleepStates?.let { item["sleepStates"] = ArrayList(it) }
-                  data.apneaResults?.let { item["apneaResults"] = ArrayList(it) }
-                  data.hypoxiaTimes?.let { item["hypoxiaTimes"] = ArrayList(it) }
-                  data.cardiacLoads?.let { item["cardiacLoads"] = ArrayList(it) }
-                  data.bloodGlucose.let { item["bloodGlucose"] = it }
+                  data.oxygens?.toList()?.let { item["oxygens"] = it }
+                  data.ppgs?.toList()?.let { item["ppgs"] = it }
+                  data.ecgs?.toList()?.let { item["ecgs"] = it }
+                  data.resRates?.toList()?.let { item["resRates"] = it }
+                  data.sleepStates?.toList()?.let { item["sleepStates"] = it }
+                  data.apneaResults?.toList()?.let { item["apneaResults"] = it }
+                  data.hypoxiaTimes?.toList()?.let { item["hypoxiaTimes"] = it }
+                  data.cardiacLoads?.toList()?.let { item["cardiacLoads"] = it }
+                  data.bloodGlucose.let { 
+                    item["bloodGlucose"] = it
+                    item["glucose"] = it.toDouble()
+                  }
                   
                   module.sendEvent(ORIGIN_FIVE_MINUTE_DATA, mapOf(
                     "deviceId" to (module.connectedDeviceId ?: ""),
@@ -885,30 +890,33 @@ fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
               if (timeData != null) {
                 val timeStr = String.format("%02d:%02d", timeData.hour, timeData.minute)
                 
-                val item = mutableMapOf(
-                  "time" to timeStr,
-                  "heartValue" to data.rateValue,
-                  "stepValue" to data.stepValue,
-                  "calValue" to data.calValue,
-                  "disValue" to data.disValue,
-                  "sportValue" to data.sportValue,
-                  "systolic" to data.highValue,
-                  "diastolic" to data.lowValue,
-                  "spo2Value" to 0,
-                  "tempValue" to data.temperature,
-                  "stressValue" to data.pressure,
-                  "met" to data.met.toDouble()
-                )
-                
-                data.oxygens?.let { item["oxygens"] = ArrayList(it) }
-                data.ppgs?.let { item["ppgs"] = ArrayList(it) }
-                data.ecgs?.let { item["ecgs"] = ArrayList(it) }
-                data.resRates?.let { item["resRates"] = ArrayList(it) }
-                data.sleepStates?.let { item["sleepStates"] = ArrayList(it) }
-                data.apneaResults?.let { item["apneaResults"] = ArrayList(it) }
-                data.hypoxiaTimes?.let { item["hypoxiaTimes"] = ArrayList(it) }
-                data.cardiacLoads?.let { item["cardiacLoads"] = ArrayList(it) }
-                data.bloodGlucose.let { item["bloodGlucose"] = it }
+                  val item = mutableMapOf<String, Any>(
+                    "time" to timeStr,
+                    "heartValue" to data.rateValue,
+                    "stepValue" to data.stepValue,
+                    "calValue" to data.calValue,
+                    "disValue" to data.disValue,
+                    "sportValue" to data.sportValue,
+                    "systolic" to data.highValue,
+                    "diastolic" to data.lowValue,
+                    "spo2Value" to (data.oxygens?.maxOrNull() ?: 0),
+                    "tempValue" to data.temperature,
+                    "stressValue" to data.pressure,
+                    "met" to data.met.toDouble()
+                  )
+                  
+                  data.oxygens?.toList()?.let { item["oxygens"] = it }
+                  data.ppgs?.toList()?.let { item["ppgs"] = it }
+                  data.ecgs?.toList()?.let { item["ecgs"] = it }
+                  data.resRates?.toList()?.let { item["resRates"] = it }
+                  data.sleepStates?.toList()?.let { item["sleepStates"] = it }
+                  data.apneaResults?.toList()?.let { item["apneaResults"] = it }
+                  data.hypoxiaTimes?.toList()?.let { item["hypoxiaTimes"] = it }
+                  data.cardiacLoads?.toList()?.let { item["cardiacLoads"] = it }
+                  data.bloodGlucose.let { 
+                    item["bloodGlucose"] = it
+                    item["glucose"] = it.toDouble()
+                  }
                 
                 dataList.add(item)
               }
