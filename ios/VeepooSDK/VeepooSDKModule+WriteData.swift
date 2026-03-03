@@ -1,4 +1,5 @@
 import ExpoModulesCore
+import VeepooBleSDK
 
 private let LANGUAGE_MAP: [String: UInt8] = [
   "chinese": 1,
