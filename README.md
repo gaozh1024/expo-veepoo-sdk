@@ -763,6 +763,66 @@ originData.forEach((data) => {
 
 ---
 
+#### readDaySummaryData(dayOffset?)
+
+读取按天聚合的汇总数据（30分钟粒度），包含运动、心率、血压列表。
+
+**参数:**
+- `dayOffset` (number, 可选) - 天数偏移量，0=今天，默认：0
+
+**返回值:** `Promise<DaySummaryData>`
+
+```typescript
+interface DaySummaryData {
+  date: string;              // 日期 "yyyy-MM-dd"
+  allStep: number;           // 总步数
+  sportList: Array<{         // 运动列表
+    time: string;            // 时间 "HH:mm"
+    step: number;            // 步数
+    cal: number;             // 卡路里
+    dis: number;             // 距离（米）
+  }>;
+  rateList: Array<{          // 心率列表
+    time: string;            // 时间 "HH:mm"
+    rate: number;            // 心率值
+  }>;
+  bpList: Array<{            // 血压列表
+    time: string;            // 时间 "HH:mm"
+    high: number;            // 收缩压（高压）
+    low: number;             // 舒张压（低压）
+  }>;
+}
+```
+
+**示例:**
+```typescript
+// 读取今天的汇总数据
+const dayData = await VeepooSDK.readDaySummaryData(0);
+
+console.log('日期:', dayData.date);
+console.log('总步数:', dayData.allStep);
+
+// 遍历运动列表（每30分钟一条）
+dayData.sportList.forEach((item) => {
+  console.log(`${item.time} - 步数:${item.step}, 卡路里:${item.cal}, 距离:${item.dis}米`);
+});
+
+// 遍历心率列表
+dayData.rateList.forEach((item) => {
+  console.log(`${item.time} - 心率:${item.rate}`);
+});
+
+// 遍历血压列表
+dayData.bpList.forEach((item) => {
+  console.log(`${item.time} - 血压:${item.high}/${item.low}`);
+});
+
+// 读取昨天的数据
+const yesterdayData = await VeepooSDK.readDaySummaryData(1);
+```
+
+---
+
 #### readAutoMeasureSetting()
 
 读取自动测量设置。

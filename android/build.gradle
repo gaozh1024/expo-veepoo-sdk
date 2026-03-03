@@ -23,11 +23,30 @@ android {
   }
 }
 
+repositories {
+  flatDir {
+    dirs 'libs'
+  }
+}
+
 dependencies {
   implementation "com.google.code.gson:gson:2.10.1"
 
-  implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'])
-  
+  // AAR dependencies - explicit declarations required for Gradle 8.x+ / AGP 8.x+ when building AAR
+  implementation(name: 'abpartool-release', ext: 'aar')
+  implementation(name: 'BmpConvert_V1.6.0_10604-release', ext: 'aar')
+  implementation(name: 'jl_bt_ota_V1.10.0_10931-release', ext: 'aar')
+  implementation(name: 'jl_rcsp_V0.7.2_527-release', ext: 'aar')
+  implementation(name: 'JL_Watch_V1.13.1_11214-release', ext: 'aar')
+  implementation(name: 'libble-0.5', ext: 'aar')
+  implementation(name: 'libdfu-1.5', ext: 'aar')
+  implementation(name: 'libfastdfu-0.5', ext: 'aar')
+  implementation(name: 'vpbluetooth-1.18', ext: 'aar')
+  implementation(name: 'vpprotocol-2.3.37.15', ext: 'aar')
+
+  // JAR files can still use fileTree
+  implementation fileTree(dir: 'libs', include: ['*.jar'])
+
   // React Native dependencies for PermissionListener and PermissionAwareActivity
   compileOnly "com.facebook.react:react-native:+"
 }

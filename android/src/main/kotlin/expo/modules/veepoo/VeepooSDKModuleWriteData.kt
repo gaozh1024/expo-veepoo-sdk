@@ -161,37 +161,87 @@ fun ModuleDefinitionBuilder.defineWriteData(module: VeepooSDKModule) {
       return@AsyncFunction
     }
     
-    Log.d(TAG, "modifyAutoMeasureSetting: modifying auto measure setting")
+    val funTypeValue = (setting["funType"] as? Number)?.toInt()
+    if (funTypeValue == null) {
+      promise.reject("INVALID_TYPE", "funType is required", null)
+      return@AsyncFunction
+    }
     
-    val autoMeasureData = mapToAutoMeasureData(setting)
+    val targetFunType = EAutoMeasureType.fromValue(funTypeValue)
+    if (targetFunType == null) {
+      promise.reject("INVALID_TYPE", "Unknown funType: $funTypeValue", null)
+      return@AsyncFunction
+    }
     
-    manager.setAutoMeasureSettingData(
+    Log.d(TAG, "modifyAutoMeasureSetting: reading current settings first, target funType=$funTypeValue")
+    
+    manager.readAutoMeasureSettingData(
       object : IBleWriteResponse {
         override fun onResponse(code: Int) {
           if (code != Code.REQUEST_SUCCESS) {
-            Log.e(TAG, "modifyAutoMeasureSetting: command failed with code $code")
+            Log.e(TAG, "modifyAutoMeasureSetting: read command failed with code $code")
           }
         }
       },
-      autoMeasureData,
       object : IAutoMeasureSettingDataListener {
         override fun onSettingDataChange(autoMeasureDataList: MutableList<AutoMeasureData>?) {
-          if (autoMeasureDataList != null) {
-            Log.d(TAG, "modifyAutoMeasureSetting: received ${autoMeasureDataList.size} settings")
-            val result = autoMeasureDataList.map { autoMeasureDataToMap(it) }
-            promise.resolve(result)
-          } else {
-            promise.resolve(emptyList<Any>())
+          if (autoMeasureDataList == null) {
+            promise.reject("READ_FAILED", "Failed to read current settings", null)
+            return
           }
+          
+          val currentData = autoMeasureDataList.find { it.funType == targetFunType }
+          if (currentData == null) {
+            promise.reject("TYPE_NOT_FOUND", "Setting with funType $funTypeValue not found on device", null)
+            return
+          }
+          
+          Log.d(TAG, "modifyAutoMeasureSetting: found current setting, applying changes")
+          
+          (setting["isSwitchOpen"] as? Boolean)?.let { currentData.isSwitchOpen = it }
+          (setting["measureInterval"] as? Number)?.let { currentData.measureInterval = it.toInt() }
+          (setting["currentStartMinute"] as? Number)?.let { currentData.currentStartMinute = it.toInt() }
+          (setting["currentEndMinute"] as? Number)?.let { currentData.currentEndMinute = it.toInt() }
+          
+          manager.setAutoMeasureSettingData(
+            object : IBleWriteResponse {
+              override fun onResponse(code: Int) {
+                if (code != Code.REQUEST_SUCCESS) {
+                  Log.e(TAG, "modifyAutoMeasureSetting: set command failed with code $code")
+                }
+              }
+            },
+            currentData,
+            object : IAutoMeasureSettingDataListener {
+              override fun onSettingDataChange(updatedList: MutableList<AutoMeasureData>?) {
+                if (updatedList != null) {
+                  Log.d(TAG, "modifyAutoMeasureSetting: success, received ${updatedList.size} settings")
+                  val result = updatedList.map { autoMeasureDataToMap(it) }
+                  promise.resolve(result)
+                } else {
+                  promise.resolve(emptyList<Any>())
+                }
+              }
+              
+              override fun onSettingDataChangeFail() {
+                Log.e(TAG, "modifyAutoMeasureSetting: set failed")
+                promise.reject("SET_FAILED", "Set auto measure setting failed", null)
+              }
+              
+              override fun onSettingDataChangeSuccess() {
+                Log.d(TAG, "modifyAutoMeasureSetting: set success callback")
+              }
+            }
+          )
         }
         
         override fun onSettingDataChangeFail() {
-          Log.e(TAG, "modifyAutoMeasureSetting: onSettingDataChangeFail")
-          promise.reject("SET_FAILED", "Set auto measure setting failed", null)
+          Log.e(TAG, "modifyAutoMeasureSetting: failed to read current settings")
+          promise.reject("READ_FAILED", "Failed to read current settings", null)
         }
         
         override fun onSettingDataChangeSuccess() {
-          Log.d(TAG, "modifyAutoMeasureSetting: onSettingDataChangeSuccess")
+          Log.d(TAG, "modifyAutoMeasureSetting: read success callback")
         }
       }
     )

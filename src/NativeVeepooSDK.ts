@@ -16,6 +16,7 @@ import type {
   SleepData,
   SportStepData,
   OriginData,
+  DaySummaryData,
   PermissionsResult,
 } from './types.js';
 
@@ -44,6 +45,7 @@ export interface NativeVeepooSDKInterface {
     readSleepData(date?: string): Promise<SleepData[]>;
     readSportStepData(date?: string): Promise<SportStepData>;
     readOriginData(dayOffset?: number): Promise<OriginData[]>;
+  readDaySummaryData(dayOffset?: number): Promise<DaySummaryData>;
   readAutoMeasureSetting(): Promise<AutoMeasureSetting[]>;
   modifyAutoMeasureSetting(setting: Partial<AutoMeasureSetting>): Promise<AutoMeasureSetting[]>;
   setLanguage(language: Language): Promise<boolean>;
@@ -158,6 +160,10 @@ class VeepooSDKNativeWrapper implements NativeVeepooSDKInterface {
 
   async readOriginData(dayOffset: number = 0): Promise<OriginData[]> {
     return this.native.readOriginData(dayOffset);
+  }
+
+  async readDaySummaryData(dayOffset: number = 0): Promise<DaySummaryData> {
+    return this.native.readDaySummaryData(dayOffset);
   }
 
   async readAutoMeasureSetting(): Promise<AutoMeasureSetting[]> {

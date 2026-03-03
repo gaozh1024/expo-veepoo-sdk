@@ -505,5 +505,91 @@ extension VeepooSDKModule {
       self.handleReadDeviceAllData(promise: promise)
       #endif
     }
+
+    AsyncFunction("readDaySummaryData") { (dayOffset: Int, promise: Promise) in
+      #if targetEnvironment(simulator)
+      let calendar = Calendar.current
+      let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) ?? Date()
+      let formatter = DateFormatter()
+      formatter.dateFormat = "yyyy-MM-dd"
+      let dateStr = formatter.string(from: date)
+      
+      let result: [String: Any] = [
+        "date": dateStr,
+        "allStep": 8500,
+        "sportList": [
+          ["time": "08:00", "step": 500, "cal": 25.0, "dis": 350.0],
+          ["time": "08:30", "step": 320, "cal": 16.0, "dis": 200.0],
+          ["time": "09:00", "step": 680, "cal": 34.0, "dis": 480.0]
+        ],
+        "rateList": [
+          ["time": "08:00", "rate": 72],
+          ["time": "08:30", "rate": 75],
+          ["time": "09:00", "rate": 78]
+        ],
+        "bpList": [
+          ["time": "08:00", "high": 120, "low": 80],
+          ["time": "12:00", "high": 118, "low": 78]
+        ]
+      ]
+      promise.resolve(result)
+      #else
+      guard self.isInitialized else {
+        promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized")
+        return
+      }
+      
+      guard let manager = self.bleManager,
+            let deviceAddress = manager.peripheralModel?.deviceAddress else {
+        promise.reject("DEVICE_NOT_CONNECTED", "No device connected or address unavailable")
+        return
+      }
+      
+      let dateStr = self.getDateString(dayOffset: dayOffset)
+      
+      var sportList: [[String: Any]] = []
+      var rateList: [[String: Any]] = []
+      var bpList: [[String: Any]] = []
+      var allStep = 0
+      
+      if let halfHourResult = VPDataBaseOperation.veepooSDKGetOriginalChangeHalfHourData(withDate: dateStr, andTableID: deviceAddress) as? [String: [String: String]] {
+        for (time, item) in halfHourResult {
+          var sportItem: [String: Any] = ["time": time, "step": 0, "cal": 0.0, "dis": 0.0]
+          var rateItem: [String: Any] = ["time": time, "rate": 0]
+          
+          if let stepStr = item["stepValue"], let step = Int(stepStr) {
+            sportItem["step"] = step
+            allStep += step
+          }
+          if let calStr = item["calValue"], let cal = Double(calStr) {
+            sportItem["cal"] = cal
+          }
+          if let disStr = item["disValue"], let dis = Double(disStr) {
+            sportItem["dis"] = dis
+          }
+          if let hrStr = item["heartValue"], let hr = Int(hrStr), hr > 0 {
+            rateItem["rate"] = hr
+            rateList.append(rateItem)
+          }
+          
+          sportList.append(sportItem)
+        }
+      }
+      
+      let sortedSportList = sportList.sorted { ($0["time"] as? String ?? "") < ($1["time"] as? String ?? "") }
+      let sortedRateList = rateList.sorted { ($0["time"] as? String ?? "") < ($1["time"] as? String ?? "") }
+      let sortedBpList = bpList.sorted { ($0["time"] as? String ?? "") < ($1["time"] as? String ?? "") }
+      
+      let result: [String: Any] = [
+        "date": dateStr,
+        "allStep": allStep,
+        "sportList": sortedSportList,
+        "rateList": sortedRateList,
+        "bpList": sortedBpList
+      ]
+      
+      promise.resolve(result)
+      #endif
+    }
   }
 }

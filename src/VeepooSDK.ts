@@ -17,6 +17,7 @@ import type {
   SportStepData,
   VeepooError,
   OriginData,
+  DaySummaryData,
   VeepooEvent,
   VeepooEventPayload,
   PermissionsResult,
@@ -244,6 +245,10 @@ export class VeepooSDK {
 
   async readOriginData(dayOffset: number = 0): Promise<OriginData[]> {
     return NativeModule.readOriginData(dayOffset);
+  }
+
+  async readDaySummaryData(dayOffset: number = 0): Promise<DaySummaryData> {
+    return NativeModule.readDaySummaryData(dayOffset);
   }
 
   async readAutoMeasureSetting(): Promise<AutoMeasureSetting[]> {

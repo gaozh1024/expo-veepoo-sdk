@@ -305,6 +305,26 @@ export interface SportStepData {
   calories: number;
 }
 
+export interface DaySummaryData {
+  date: string;
+  allStep: number;
+  sportList: Array<{
+    time: string;
+    step: number;
+    cal: number;
+    dis: number;
+  }>;
+  rateList: Array<{
+    time: string;
+    rate: number;
+  }>;
+  bpList: Array<{
+    time: string;
+    high: number;
+    low: number;
+  }>;
+}
+
 export interface OriginData {
   time: string;
   heartValue: number;
