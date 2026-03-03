@@ -37,20 +37,20 @@
   },
   "devDependencies": {
     "@types/events": "^3.0.0",
-    "@types/react": "~19.0.10",
+    "@types/react": "~19.2.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.57.1",
     "expo": "~54.0.0",
     "expo-module-scripts": "^4.0.0",
     "expo-modules-core": "~3.0.0",
-    "react-native": "~0.81.0",
+    "react-native": "~0.81.6",
     "typescript": "~5.9.0"
   },
   "dependencies": {
     "@expo/config-plugins": "~10.0.0",
     "expo": "~54.0.0",
-    "react": "19.0.0",
-    "react-native": "0.81.5"
+    "react": "19.2.4",
+    "react-native": "0.81.6"
   }
 }
