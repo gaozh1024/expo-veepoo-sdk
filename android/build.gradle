@@ -8,7 +8,6 @@ apply from: expoModulesCorePlugin
 applyKotlinExpoModulesCorePlugin()
 useCoreDependencies()
 useDefaultAndroidSdkVersions()
-useExpoPublishing()
 
 android {
   namespace "expo.modules.veepoo"
@@ -23,30 +22,24 @@ android {
   }
 }
 
-repositories {
-  flatDir {
-    dirs 'libs'
-  }
-}
-
 dependencies {
   implementation "com.google.code.gson:gson:2.10.1"
 
-  // AAR dependencies - explicit declarations required for Gradle 8.x+ / AGP 8.x+ when building AAR
-  implementation(name: 'abpartool-release', ext: 'aar')
-  implementation(name: 'BmpConvert_V1.6.0_10604-release', ext: 'aar')
-  implementation(name: 'jl_bt_ota_V1.10.0_10931-release', ext: 'aar')
-  implementation(name: 'jl_rcsp_V0.7.2_527-release', ext: 'aar')
-  implementation(name: 'JL_Watch_V1.13.1_11214-release', ext: 'aar')
-  implementation(name: 'libble-0.5', ext: 'aar')
-  implementation(name: 'libdfu-1.5', ext: 'aar')
-  implementation(name: 'libfastdfu-0.5', ext: 'aar')
-  implementation(name: 'vpbluetooth-1.18', ext: 'aar')
-  implementation(name: 'vpprotocol-2.3.37.15', ext: 'aar')
+  // AAR 子项目引用 - 使用正确的项目名称格式
+  implementation project(':gaozh1024-expo-veepoo-sdk$abpartool')
+  implementation project(':gaozh1024-expo-veepoo-sdk$bmpconvert')
+  implementation project(':gaozh1024-expo-veepoo-sdk$jl-bt-ota')
+  implementation project(':gaozh1024-expo-veepoo-sdk$jl-rcsp')
+  implementation project(':gaozh1024-expo-veepoo-sdk$jl-watch')
+  implementation project(':gaozh1024-expo-veepoo-sdk$libble')
+  implementation project(':gaozh1024-expo-veepoo-sdk$libdfu')
+  implementation project(':gaozh1024-expo-veepoo-sdk$libfastdfu')
+  implementation project(':gaozh1024-expo-veepoo-sdk$vpbluetooth')
+  implementation project(':gaozh1024-expo-veepoo-sdk$vpprotocol')
 
-  // JAR files can still use fileTree
-  implementation fileTree(dir: 'libs', include: ['*.jar'])
+  // JAR files
+  implementation fileTree(dir: "${project.projectDir}/libs", include: ['*.jar'])
 
-  // React Native dependencies for PermissionListener and PermissionAwareActivity
+  // React Native dependencies
   compileOnly "com.facebook.react:react-native:+"
 }

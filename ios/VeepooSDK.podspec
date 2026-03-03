@@ -5,7 +5,7 @@ Pod::Spec.new do |s|
   s.description    = 'Expo module that provides Bluetooth LE functionality for Veepoo devices'
   s.author         = 'Expo'
   s.homepage       = 'https://github.com/expo/expo'
-  s.platforms      = { :ios => '13.4' }
+  s.platforms      = { :ios => '15.1' }
   s.source         = { git: 'https://github.com/expo/expo.git' }
   s.static_framework = true
   s.dependency 'ExpoModulesCore'
