@@ -3153,7 +3153,7 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 ### 获取帮助
 
 - 提交 [Issue](https://github.com/gaozh1024/expo-veepoo-sdk/issues)
-- 邮件：gaozh1024@gmail.com
+- 邮件：gaozh1024@163.com
 
 ### 致谢
 
