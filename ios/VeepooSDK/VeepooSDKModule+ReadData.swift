@@ -157,7 +157,24 @@ extension VeepooSDKModule {
       
       let dateStr = self.getDateString(dayOffset: 0)
       
-      // 读取5分钟原始数据
+      var oxygenMap: [String: [String: Any]] = [:]
+      if let oxygenArray = VPDataBaseOperation.veepooSDKGetDeviceOxygenData(withDate: dateStr, andTableID: deviceAddress) as? [[String: Any]] {
+        for item in oxygenArray {
+          if let time = item["Time"] as? String {
+            oxygenMap[time] = item
+          }
+        }
+      }
+      
+      var bloodGlucoseMap: [String: [String: Any]] = [:]
+      if let bloodGlucoseArray = VPDataBaseOperation.veepooSDKGetDeviceBloodGlucoseData(withDate: dateStr, andTableID: deviceAddress) as? [[String: Any]] {
+        for item in bloodGlucoseArray {
+          if let time = item["time"] as? String {
+            bloodGlucoseMap[time] = item
+          }
+        }
+      }
+      
       if let originData = VPDataBaseOperation.veepooSDKGetOriginalData(withDate: dateStr, andTableID: deviceAddress) as? [String: [String: Any]] {
         for (time, data) in originData {
           var item: [String: Any] = [
@@ -175,6 +192,32 @@ extension VeepooSDKModule {
             "met": data["met"] ?? 0
           ]
           
+          if let oxyData = oxygenMap[time] {
+            let oxygenValue = self.getInt(oxyData["OxygenValue"])
+            if oxygenValue > 0 {
+              item["spo2Value"] = oxygenValue
+            }
+            item["respirationRate"] = self.getInt(oxyData["RespirationRate"])
+            item["isHypoxia"] = self.getInt(oxyData["IsHypoxia"])
+            item["cardiacLoad"] = self.getDouble(oxyData["CardiacLoad"])
+          }
+          
+          if let bgData = bloodGlucoseMap[time] {
+            if let bgValue = bgData["bloodGlucoses"] as? [Int], let first = bgValue.first {
+              item["bloodGlucose"] = first
+              item["glucose"] = Double(first)
+            } else if let bgValue = bgData["bloodGlucose"] as? Int {
+              item["bloodGlucose"] = bgValue
+              item["glucose"] = Double(bgValue)
+            }
+            item["bloodGlucoseLevel"] = bgData["bloodGlucoseLevels"]
+          }
+          
+          if let bloodGlucose = data["bloodGlucose"] as? Int, item["bloodGlucose"] == nil {
+            item["bloodGlucose"] = bloodGlucose
+            item["glucose"] = Double(bloodGlucose)
+          }
+          
           if let ppgs = data["ppgs"] as? [Int] {
             item["ppgs"] = ppgs
           }
@@ -184,12 +227,7 @@ extension VeepooSDKModule {
           if let oxygens = data["oxygens"] as? [Int] {
             item["oxygens"] = oxygens
           }
-          if let bloodGlucose = data["bloodGlucose"] as? Int {
-            item["bloodGlucose"] = bloodGlucose
-            item["glucose"] = Double(bloodGlucose)
-          }
           
-          // 发送5分钟数据事件
           self.sendEvent(ORIGIN_FIVE_MINUTE_DATA, [
             "deviceId": self.connectedDeviceId ?? "",
             "data": item
@@ -207,7 +245,6 @@ extension VeepooSDKModule {
         ])
       }
       
-      // 读取30分钟数据
       if let halfHourResult = VPDataBaseOperation.veepooSDKGetOriginalChangeHalfHourData(withDate: dateStr, andTableID: deviceAddress) as? [String: [String: String]] {
         for (time, item) in halfHourResult {
           var dataItem: [String: Any] = ["time": time]
@@ -223,6 +260,49 @@ extension VeepooSDKModule {
           }
           if let disStr = item["disValue"], let dis = Double(disStr) {
             dataItem["disValue"] = dis
+          }
+          
+          if let highStr = item["highValue"], let high = Int(highStr), high > 0 {
+            dataItem["systolic"] = high
+          } else if let highStr = item["systolic"], let high = Int(highStr), high > 0 {
+            dataItem["systolic"] = high
+          }
+          if let lowStr = item["lowValue"], let low = Int(lowStr), low > 0 {
+            dataItem["diastolic"] = low
+          } else if let lowStr = item["diastolic"], let low = Int(lowStr), low > 0 {
+            dataItem["diastolic"] = low
+          }
+          if let spo2Str = item["spo2Value"], let spo2 = Int(spo2Str), spo2 > 0 {
+            dataItem["spo2Value"] = spo2
+          }
+          if let bgStr = item["bloodGlucose"], let bg = Int(bgStr), bg > 0 {
+            dataItem["bloodGlucose"] = bg
+            dataItem["glucose"] = Double(bg)
+          }
+          if let stressStr = item["stress"], let stress = Int(stressStr), stress > 0 {
+            dataItem["stressValue"] = stress
+          } else if let stressStr = item["pressure"], let stress = Int(stressStr), stress > 0 {
+            dataItem["stressValue"] = stress
+          }
+          if let tempStr = item["tempValue"], let temp = Double(tempStr), temp > 0 {
+            dataItem["tempValue"] = temp
+          }
+          
+          if let oxyData = oxygenMap[time] {
+            let oxygenValue = self.getInt(oxyData["OxygenValue"])
+            if oxygenValue > 0 {
+              dataItem["spo2Value"] = oxygenValue
+            }
+          }
+          
+          if let bgData = bloodGlucoseMap[time] {
+            if let bgValue = bgData["bloodGlucoses"] as? [Int], let first = bgValue.first, first > 0 {
+              dataItem["bloodGlucose"] = first
+              dataItem["glucose"] = Double(first)
+            } else if let bgValue = bgData["bloodGlucose"] as? Int, bgValue > 0 {
+              dataItem["bloodGlucose"] = bgValue
+              dataItem["glucose"] = Double(bgValue)
+            }
           }
           
           self.sendEvent(ORIGIN_HALF_HOUR_DATA, [
@@ -345,13 +425,15 @@ extension VeepooSDKModule {
          ]
        ]
        
-       self.sendEvent(SLEEP_DATA, [
-         "deviceId": self.connectedDeviceId ?? "",
-         "date": queryDate,
-         "data": result
-       ])
-       
-       promise.resolve(result)
+        self.sendEvent(SLEEP_DATA, [
+          "deviceId": self.connectedDeviceId ?? "",
+          "date": queryDate,
+          "data": result
+        ])
+        
+        // 返回数组格式以匹配 Android
+        let resultList = [result]
+        promise.resolve(resultList)
        #endif
      }
 
@@ -431,6 +513,24 @@ extension VeepooSDKModule {
       let dateStr = self.getDateString(dayOffset: dayOffset)
       var resultList: [[String: Any]] = []
       
+      var oxygenMap: [String: [String: Any]] = [:]
+      if let oxygenArray = VPDataBaseOperation.veepooSDKGetDeviceOxygenData(withDate: dateStr, andTableID: deviceAddress) as? [[String: Any]] {
+        for item in oxygenArray {
+          if let time = item["Time"] as? String {
+            oxygenMap[time] = item
+          }
+        }
+      }
+      
+      var bloodGlucoseMap: [String: [String: Any]] = [:]
+      if let bloodGlucoseArray = VPDataBaseOperation.veepooSDKGetDeviceBloodGlucoseData(withDate: dateStr, andTableID: deviceAddress) as? [[String: Any]] {
+        for item in bloodGlucoseArray {
+          if let time = item["time"] as? String {
+            bloodGlucoseMap[time] = item
+          }
+        }
+      }
+      
       if let originData = VPDataBaseOperation.veepooSDKGetOriginalData(withDate: dateStr, andTableID: deviceAddress) as? [String: [String: Any]] {
         for (time, data) in originData {
           var item: [String: Any] = [
@@ -448,6 +548,32 @@ extension VeepooSDKModule {
             "met": data["met"] ?? 0
           ]
           
+          if let oxyData = oxygenMap[time] {
+            let oxygenValue = self.getInt(oxyData["OxygenValue"])
+            if oxygenValue > 0 {
+              item["spo2Value"] = oxygenValue
+            }
+            item["respirationRate"] = self.getInt(oxyData["RespirationRate"])
+            item["isHypoxia"] = self.getInt(oxyData["IsHypoxia"])
+            item["cardiacLoad"] = self.getDouble(oxyData["CardiacLoad"])
+          }
+          
+          if let bgData = bloodGlucoseMap[time] {
+            if let bgValue = bgData["bloodGlucoses"] as? [Int], let first = bgValue.first {
+              item["bloodGlucose"] = first
+              item["glucose"] = Double(first)
+            } else if let bgValue = bgData["bloodGlucose"] as? Int {
+              item["bloodGlucose"] = bgValue
+              item["glucose"] = Double(bgValue)
+            }
+            item["bloodGlucoseLevel"] = bgData["bloodGlucoseLevels"]
+          }
+          
+          if let bloodGlucose = data["bloodGlucose"] as? Int, item["bloodGlucose"] == nil {
+            item["bloodGlucose"] = bloodGlucose
+            item["glucose"] = Double(bloodGlucose)
+          }
+          
           if let ppgs = data["ppgs"] as? [Int] {
             item["ppgs"] = ppgs
           }
@@ -456,10 +582,6 @@ extension VeepooSDKModule {
           }
           if let oxygens = data["oxygens"] as? [Int] {
             item["oxygens"] = oxygens
-          }
-          if let bloodGlucose = data["bloodGlucose"] as? Int {
-            item["bloodGlucose"] = bloodGlucose
-            item["glucose"] = Double(bloodGlucose)
           }
           
           resultList.append(item)

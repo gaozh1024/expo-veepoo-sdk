@@ -3,11 +3,11 @@ import ExpoModulesCore
 /// 监听器生命周期
 extension VeepooSDKModule {
   func defineLifecycle() {
-    OnStartObserving {
+    _ = OnStartObserving {
       self.emitBluetoothStatus()
     }
 
-    OnDestroy {
+    _ = OnDestroy {
       self.cleanup()
     }
   }

@@ -10,6 +10,9 @@ public class VeepooSDKModule: Module {
   var connectedDeviceId: String?
   var isInitialized = false
   var centralManager: CBCentralManager?
+  var permissionPromise: Promise?
+  var permissionCentralManager: CBCentralManager?
+  var permissionDelegate: PermissionDelegate?
   var pendingScanStart = false
   var discoveredDevices: [String: VPPeripheralModel] = [:]
   var pendingConnectDeviceId: String?
@@ -60,11 +63,13 @@ public class VeepooSDKModule: Module {
       #if targetEnvironment(simulator)
       promise.resolve(true)
       #else
-      guard let central = self.centralManager else {
+      self.ensureCentralManager()
+      let central = self.centralManager ?? self.permissionCentralManager
+      guard let manager = central else {
         promise.resolve(false)
         return
       }
-      let isEnabled = central.state == .poweredOn
+      let isEnabled = manager.state == .poweredOn
       promise.resolve(isEnabled)
       #endif
     }
@@ -80,50 +85,8 @@ public class VeepooSDKModule: Module {
       }
     }
 
-    // Start Scan
-    AsyncFunction("startScan") { (promise: Promise) in
-      #if targetEnvironment(simulator)
-      promise.resolve(nil)
-      #else
-      guard self.isInitialized else {
-        promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized")
-        return
-      }
-
-      self.pendingScanStart = true
-
-      guard let manager = self.bleManager else {
-        promise.reject("SDK_NOT_INITIALIZED", "BLE manager is nil")
-        return
-      }
-
-      if self.isScanning {
-        promise.resolve(nil)
-        return
-      }
-
-      self.isScanning = true
-
-      manager.veepooSDKStartScanDeviceAndReceiveScanningDevice { peripheralModel in
-        guard let model = peripheralModel else { return }
-        self.handleDiscoveredDevice(model)
-      }
-
-      promise.resolve(nil)
-      #endif
-    }
-
-    // Stop Scan
-    AsyncFunction("stopScan") { (promise: Promise) in
-      #if targetEnvironment(simulator)
-      promise.resolve(nil)
-      #else
-      self.pendingScanStart = false
-      self.isScanning = false
-      self.bleManager?.veepooSDKStopScanDevice()
-      promise.resolve(nil)
-      #endif
-    }
+    // Scan functions are defined in VeepooSDKModule+Scan.swift
+    defineScan()
 
     // Connect
     AsyncFunction("connect") { (deviceId: String, password: String?, promise: Promise) in
@@ -186,24 +149,6 @@ public class VeepooSDKModule: Module {
       }
       #endif
     }
-  }
-
-  // MARK: - Helper Methods
-
-  private func handleDiscoveredDevice(_ model: VPPeripheralModel) {
-    guard let name = model.peripheral?.name, !name.isEmpty else { return }
-    let deviceId = model.deviceAddress ?? UUID().uuidString
-
-    self.discoveredDevices[deviceId] = model
-
-    self.sendEvent("deviceFound", [
-      "device": [
-        "id": deviceId,
-        "name": name,
-        "rssi": model.rssi ?? 0,
-        "mac": model.deviceAddress ?? ""
-      ]
-    ])
   }
 
   private func handleConnectionState(_ state: DeviceConnectState) {

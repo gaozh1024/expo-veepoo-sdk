@@ -1,9 +1,8 @@
 import ExpoModulesCore
 
-/// 扫描相关接口
 extension VeepooSDKModule {
   func defineScan() {
-    AsyncFunction("startScan") { (_: [String: Any]?, promise: Promise) in
+    AsyncFunction("startScan") { (options: [String: Any]?, promise: Promise) in
       #if targetEnvironment(simulator)
       promise.resolve(nil)
       #else
@@ -29,6 +28,14 @@ extension VeepooSDKModule {
       manager.veepooSDKStartScanDeviceAndReceiveScanningDevice { peripheralModel in
         guard let model = peripheralModel else { return }
         self.handleDiscoveredDevice(model)
+      }
+
+      let timeout = options?["timeout"] as? Int ?? 10000
+      DispatchQueue.main.asyncAfter(deadline: .now() + Double(timeout) / 1000) { [weak self] in
+        guard let self = self, self.isScanning else { return }
+        self.bleManager?.veepooSDKStopScanDevice()
+        self.isScanning = false
+        self.pendingScanStart = false
       }
 
       promise.resolve(nil)
