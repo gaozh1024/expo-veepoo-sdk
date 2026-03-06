@@ -21,21 +21,49 @@ extension VeepooSDKModule {
     promise: Promise
   ) {
     #if !targetEnvironment(simulator)
+    print("[VeepooSDK] performConnect - 开始, deviceId: \(deviceId)")
+    
+    connectionState = .connecting
+    
     guard let manager = self.bleManager else {
+      print("[VeepooSDK] performConnect - 错误: bleManager 为 nil")
+      connectionState = .error("BLE manager is nil")
       promise.reject("SDK_NOT_INITIALIZED", "BLE manager is nil")
       return
     }
-
+    
+    print("[VeepooSDK] performConnect - 调用 veepooSDKConnectDevice")
+    
+    connectionTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: false) { [weak self] _ in
+      guard let self = self else { return }
+      print("[VeepooSDK] performConnect - 连接超时")
+      self.connectionState = .error("Connection timeout")
+      self.sendEvent(DEVICE_CONNECT_STATUS, [
+        "deviceId": deviceId,
+        "status": "timeout"
+      ])
+      promise.reject("CONNECTION_TIMEOUT", "Connection timeout after 15 seconds")
+    }
+    
     manager.veepooSDKConnectDevice(model) { [weak self] connectState in
       guard let self = self else { return }
       
+      self.connectionTimer?.invalidate()
+      self.connectionTimer = nil
+      
+      print("[VeepooSDK] performConnect - 连接状态: \(connectState.rawValue)")
+      
       switch connectState.rawValue {
       case 2:
+        print("[VeepooSDK] performConnect - 连接成功")
+        self.connectionState = .connected
         self.connectedDeviceId = deviceId
         self.sendEvent(DEVICE_CONNECTED, ["deviceId": deviceId, "isOadModel": false])
         self.sendEvent(DEVICE_CONNECT_STATUS, ["deviceId": deviceId, "status": "connected"])
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        
+        self.connectionState = .authenticating
+        print("[VeepooSDK] performConnect - 准备认证，等待 0.3 秒")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
           self.verifyPasswordInternal(deviceId: deviceId, password: password, is24Hour: is24Hour)
         }
 
@@ -145,26 +173,85 @@ extension VeepooSDKModule {
 
   func verifyPasswordInternal(deviceId: String, password: String, is24Hour: Bool) {
     #if !targetEnvironment(simulator)
-    guard let manager = self.bleManager else { return }
-
-    manager.is24HourFormat = is24Hour
-
-    // 安全解包 SynchronousPasswordType，rawValue 0 表示默认密码类型
-    guard let passwordType = SynchronousPasswordType(rawValue: 0) else {
+    print("[VeepooSDK] verifyPasswordInternal - 开始, deviceId: \(deviceId), password: \(password), 重试次数: \(authenticationRetryCount)")
+    
+    authenticationTimer?.invalidate()
+    authenticationTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: false) { [weak self] _ in
+      guard let self = self else { return }
+      print("[VeepooSDK] verifyPasswordInternal - 认证超时")
+      
+      if self.authenticationRetryCount < self.maxAuthenticationRetries {
+        self.authenticationRetryCount += 1
+        print("[VeepooSDK] verifyPasswordInternal - 将进行第 \(self.authenticationRetryCount) 次重试")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+          self.verifyPasswordInternal(deviceId: deviceId, password: password, is24Hour: is24Hour)
+        }
+      } else {
+        self.connectionState = .error("Authentication timeout")
+        self.sendEvent(PASSWORD_DATA, [
+          "deviceId": deviceId,
+          "data": [
+            "status": "TIMEOUT",
+            "password": password,
+            "deviceNumber": "",
+            "deviceVersion": "",
+            "retryCount": self.authenticationRetryCount
+          ]
+        ])
+        self.authenticationRetryCount = 0
+      }
+    }
+    
+    guard let manager = self.bleManager else {
+      print("[VeepooSDK] verifyPasswordInternal - 错误: bleManager 为 nil")
+      authenticationTimer?.invalidate()
+      authenticationTimer = nil
+      connectionState = .error("BLE manager is nil")
       self.sendEvent(PASSWORD_DATA, [
         "deviceId": deviceId,
         "data": [
           "status": "FAILED",
           "password": password,
           "deviceNumber": "",
-          "deviceVersion": ""
+          "deviceVersion": "",
+          "error": "BLE manager is nil"
+        ]
+      ])
+      return
+    }
+    
+    print("[VeepooSDK] verifyPasswordInternal - bleManager 存在")
+    manager.is24HourFormat = is24Hour
+
+    guard let passwordType = SynchronousPasswordType(rawValue: 0) else {
+      print("[VeepooSDK] verifyPasswordInternal - 错误: SynchronousPasswordType 创建失败")
+      authenticationTimer?.invalidate()
+      authenticationTimer = nil
+      connectionState = .error("Invalid password type")
+      self.sendEvent(PASSWORD_DATA, [
+        "deviceId": deviceId,
+        "data": [
+          "status": "FAILED",
+          "password": password,
+          "deviceNumber": "",
+          "deviceVersion": "",
+          "error": "Invalid password type"
         ]
       ])
       return
     }
 
+    print("[VeepooSDK] verifyPasswordInternal - 调用 veepooSDKSynchronousPassword")
     manager.veepooSDKSynchronousPassword(with: passwordType, password: password) { [weak self] result in
-      guard let self = self else { return }
+      guard let self = self else {
+        print("[VeepooSDK] verifyPasswordInternal - 错误: self 为 nil")
+        return
+      }
+
+      self.authenticationTimer?.invalidate()
+      self.authenticationTimer = nil
+
+      print("[VeepooSDK] verifyPasswordInternal - 密码验证结果: \(result.rawValue)")
 
       let success = (result.rawValue == 1) || (result.rawValue == 6)
       let status = success ? "SUCCESS" : "FAILED"
@@ -175,12 +262,29 @@ extension VeepooSDKModule {
           "status": status,
           "password": password,
           "deviceNumber": String(manager.peripheralModel?.deviceNumber ?? 0),
-          "deviceVersion": manager.peripheralModel?.deviceVersion ?? ""
+          "deviceVersion": manager.peripheralModel?.deviceVersion ?? "",
+          "retryCount": self.authenticationRetryCount
         ]
       ])
 
       if success {
+        print("[VeepooSDK] verifyPasswordInternal - 密码验证成功, 发送 DEVICE_READY 事件")
+        self.connectionState = .ready
+        self.authenticationRetryCount = 0
         self.sendEvent(DEVICE_READY, ["deviceId": deviceId, "isOadModel": false])
+      } else {
+        print("[VeepooSDK] verifyPasswordInternal - 密码验证失败, result: \(result.rawValue)")
+        
+        if self.authenticationRetryCount < self.maxAuthenticationRetries {
+          self.authenticationRetryCount += 1
+          print("[VeepooSDK] verifyPasswordInternal - 将进行第 \(self.authenticationRetryCount) 次重试")
+          DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.verifyPasswordInternal(deviceId: deviceId, password: password, is24Hour: is24Hour)
+          }
+        } else {
+          self.connectionState = .error("Authentication failed after \(self.authenticationRetryCount) retries")
+          self.authenticationRetryCount = 0
+        }
       }
     }
     #endif
@@ -234,10 +338,19 @@ extension VeepooSDKModule {
     #if !targetEnvironment(simulator)
     bleManager?.veepooSDKStopScanDevice()
     bleManager?.veepooSDKDisconnectDevice()
+    
+    authenticationTimer?.invalidate()
+    authenticationTimer = nil
+    
+    connectionTimer?.invalidate()
+    connectionTimer = nil
+    
+    authenticationRetryCount = 0
     #endif
     isScanning = false
     connectedDeviceId = nil
     isInitialized = false
     discoveredDevices.removeAll()
+    connectionState = .idle
   }
 }
