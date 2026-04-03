@@ -67,7 +67,8 @@ fun ModuleDefinitionBuilder.defineTests(module: VeepooSDKModule) {
       object : IHeartDataListener {
         override fun onDataChange(heartData: HeartData?) {
           if (heartData != null && module.isHeartRateTesting) {
-            val testState = normalizeTestState(heartData.heartStatus?.toString())
+            val rawStatus = heartData.heartStatus?.toString()
+            val testState = normalizeTestState(rawStatus)
             lastHeartValue = heartData.data
 
             if (testState == "error" || testState == "notWear" || testState == "deviceBusy") {
