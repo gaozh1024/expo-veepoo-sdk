@@ -76,7 +76,9 @@ SCRIPT
     'FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]' => %($(inherited) "#{frameworks_dir}"),
     'OTHER_LDFLAGS[sdk=iphoneos*]' => %($(inherited) #{linker_flags}),
     'FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*]' => '$(inherited)',
-    'OTHER_LDFLAGS[sdk=iphonesimulator*]' => '$(inherited)'
+    'OTHER_LDFLAGS[sdk=iphonesimulator*]' => '$(inherited)',
+    'EXCLUDED_SOURCE_FILE_NAMES[sdk=iphonesimulator*]' => 'VeepooSDK.swift VeepooSDKModule+*.swift',
+    'EXCLUDED_SOURCE_FILE_NAMES[sdk=iphoneos*]' => 'VeepooSDKSimulator.swift'
   }
   s.user_target_xcconfig = {
     'FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]' => %($(inherited) "#{frameworks_dir}"),
