@@ -1,6 +1,6 @@
 {
   "name": "@gaozh1024/expo-veepoo-sdk",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "description": "Expo module for Veepoo SDK Bluetooth connectivity",
   "main": "build/index.js",
   "types": "build/index.d.ts",
