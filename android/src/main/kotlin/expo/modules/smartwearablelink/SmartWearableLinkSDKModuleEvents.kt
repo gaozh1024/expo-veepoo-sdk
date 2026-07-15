@@ -1,4 +1,4 @@
-package expo.modules.veepoo
+package expo.modules.smartwearablelink
 
 import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 

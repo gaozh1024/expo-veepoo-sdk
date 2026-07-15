@@ -1,4 +1,4 @@
-package expo.modules.veepoo
+package expo.modules.smartwearablelink
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -10,7 +10,7 @@ import com.facebook.react.modules.core.PermissionListener
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 
-fun ModuleDefinitionBuilder.definePermissions(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.definePermissions(module: SmartWearableLinkSDKModule) {
   AsyncFunction("isBluetoothEnabled") { promise: Promise ->
     promise.resolve(module.isBluetoothEnabled())
   }
@@ -60,7 +60,7 @@ fun ModuleDefinitionBuilder.definePermissions(module: VeepooSDKModule) {
 
       (activity as PermissionAwareActivity).requestPermissions(
         permissionsToRequest.toTypedArray(),
-        VeepooSDKModule.PERMISSIONS_REQUEST_CODE,
+        SmartWearableLinkSDKModule.PERMISSIONS_REQUEST_CODE,
         listener
       )
     } catch (e: Exception) {

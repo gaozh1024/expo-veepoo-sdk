@@ -1,8 +1,8 @@
-export { default } from './VeepooSDK.js';
-export { default as VeepooSDK } from './VeepooSDK.js';
+export { default } from './SmartWearableLinkSDK.js';
+export { default as SmartWearableLinkSDK } from './SmartWearableLinkSDK.js';
 
 export type {
-  VeepooDevice,
+  SmartWearableLinkDevice,
   ConnectionStatus,
   ConnectionResult,
   ScanOptions,
@@ -51,13 +51,13 @@ export type {
   Language,
   SocialMsgData,
   CustomSettingData,
-  VeepooErrorCode,
-  VeepooError,
+  SmartWearableLinkErrorCode,
+  SmartWearableLinkError,
   LogLevel,
   LogScope,
   LogEntry,
-  VeepooEvent,
-  VeepooEventPayload,
+  SmartWearableLinkEvent,
+  SmartWearableLinkEventPayload,
   OperationStatus,
   TemperatureUnit,
   DistanceUnit,

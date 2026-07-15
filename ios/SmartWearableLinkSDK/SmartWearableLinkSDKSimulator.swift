@@ -1,7 +1,7 @@
 #if targetEnvironment(simulator)
 import ExpoModulesCore
 
-private enum VeepooSimulatorEvent {
+private enum SmartWearableLinkSimulatorEvent {
   static let deviceFound = "deviceFound"
   static let deviceConnected = "deviceConnected"
   static let deviceDisconnected = "deviceDisconnected"
@@ -30,7 +30,7 @@ private enum VeepooSimulatorEvent {
   static let error = "error"
 }
 
-public class VeepooSDKModule: Module {
+public class SmartWearableLinkSDKModule: Module {
   private var connectedDeviceId: String?
   private var isInitialized = false
   private var isScanning = false
@@ -44,7 +44,7 @@ public class VeepooSDKModule: Module {
   }
 
   private func emitBluetoothStatus() {
-    sendEvent(VeepooSimulatorEvent.bluetoothStateChanged, [
+    sendEvent(SmartWearableLinkSimulatorEvent.bluetoothStateChanged, [
       "state": "poweredOn",
       "stateName": "poweredOn",
       "authorization": "allowedAlways",
@@ -59,8 +59,8 @@ public class VeepooSDKModule: Module {
       "deviceId": deviceId,
       "status": status
     ]
-    sendEvent(VeepooSimulatorEvent.deviceConnectStatus, payload)
-    sendEvent(VeepooSimulatorEvent.connectionStatusChanged, payload)
+    sendEvent(SmartWearableLinkSimulatorEvent.deviceConnectStatus, payload)
+    sendEvent(SmartWearableLinkSimulatorEvent.connectionStatusChanged, payload)
   }
 
   private func simulatorDeviceFunctions() -> [String: Any] {
@@ -85,35 +85,35 @@ public class VeepooSDKModule: Module {
   }
 
   public func definition() -> ModuleDefinition {
-    Name("VeepooSDK")
+    Name("SmartWearableLinkSDK")
 
     Events(
-      VeepooSimulatorEvent.deviceFound,
-      VeepooSimulatorEvent.deviceConnected,
-      VeepooSimulatorEvent.deviceDisconnected,
-      VeepooSimulatorEvent.deviceConnectStatus,
-      VeepooSimulatorEvent.connectionStatusChanged,
-      VeepooSimulatorEvent.deviceReady,
-      VeepooSimulatorEvent.bluetoothStateChanged,
-      VeepooSimulatorEvent.deviceFunction,
-      VeepooSimulatorEvent.deviceVersion,
-      VeepooSimulatorEvent.passwordData,
-      VeepooSimulatorEvent.batteryData,
-      VeepooSimulatorEvent.heartRateTestResult,
-      VeepooSimulatorEvent.bloodPressureTestResult,
-      VeepooSimulatorEvent.bloodOxygenTestResult,
-      VeepooSimulatorEvent.temperatureTestResult,
-      VeepooSimulatorEvent.stressData,
-      VeepooSimulatorEvent.bloodGlucoseData,
-      VeepooSimulatorEvent.sleepData,
-      VeepooSimulatorEvent.sportStepData,
-      VeepooSimulatorEvent.readOriginProgress,
-      VeepooSimulatorEvent.readOriginComplete,
-      VeepooSimulatorEvent.originFiveMinuteData,
-      VeepooSimulatorEvent.originHalfHourData,
-      VeepooSimulatorEvent.originSpo2Data,
-      VeepooSimulatorEvent.socialMsgData,
-      VeepooSimulatorEvent.error
+      SmartWearableLinkSimulatorEvent.deviceFound,
+      SmartWearableLinkSimulatorEvent.deviceConnected,
+      SmartWearableLinkSimulatorEvent.deviceDisconnected,
+      SmartWearableLinkSimulatorEvent.deviceConnectStatus,
+      SmartWearableLinkSimulatorEvent.connectionStatusChanged,
+      SmartWearableLinkSimulatorEvent.deviceReady,
+      SmartWearableLinkSimulatorEvent.bluetoothStateChanged,
+      SmartWearableLinkSimulatorEvent.deviceFunction,
+      SmartWearableLinkSimulatorEvent.deviceVersion,
+      SmartWearableLinkSimulatorEvent.passwordData,
+      SmartWearableLinkSimulatorEvent.batteryData,
+      SmartWearableLinkSimulatorEvent.heartRateTestResult,
+      SmartWearableLinkSimulatorEvent.bloodPressureTestResult,
+      SmartWearableLinkSimulatorEvent.bloodOxygenTestResult,
+      SmartWearableLinkSimulatorEvent.temperatureTestResult,
+      SmartWearableLinkSimulatorEvent.stressData,
+      SmartWearableLinkSimulatorEvent.bloodGlucoseData,
+      SmartWearableLinkSimulatorEvent.sleepData,
+      SmartWearableLinkSimulatorEvent.sportStepData,
+      SmartWearableLinkSimulatorEvent.readOriginProgress,
+      SmartWearableLinkSimulatorEvent.readOriginComplete,
+      SmartWearableLinkSimulatorEvent.originFiveMinuteData,
+      SmartWearableLinkSimulatorEvent.originHalfHourData,
+      SmartWearableLinkSimulatorEvent.originSpo2Data,
+      SmartWearableLinkSimulatorEvent.socialMsgData,
+      SmartWearableLinkSimulatorEvent.error
     )
 
     AsyncFunction("init") { (promise: Promise) in
@@ -146,11 +146,11 @@ public class VeepooSDKModule: Module {
     AsyncFunction("connect") { (deviceId: String, _: [String: Any]?, promise: Promise) in
       self.connectedDeviceId = deviceId
       self.emitConnectionStatus(deviceId: deviceId, status: "ready")
-      self.sendEvent(VeepooSimulatorEvent.deviceConnected, [
+      self.sendEvent(SmartWearableLinkSimulatorEvent.deviceConnected, [
         "deviceId": deviceId,
         "isOadModel": false
       ])
-      self.sendEvent(VeepooSimulatorEvent.deviceReady, [
+      self.sendEvent(SmartWearableLinkSimulatorEvent.deviceReady, [
         "deviceId": deviceId,
         "isOadModel": false
       ])
@@ -160,7 +160,7 @@ public class VeepooSDKModule: Module {
     AsyncFunction("disconnect") { (deviceId: String, promise: Promise) in
       self.connectedDeviceId = nil
       self.emitConnectionStatus(deviceId: deviceId, status: "disconnected")
-      self.sendEvent(VeepooSimulatorEvent.deviceDisconnected, ["deviceId": deviceId])
+      self.sendEvent(SmartWearableLinkSimulatorEvent.deviceDisconnected, ["deviceId": deviceId])
       promise.resolve(nil)
     }
 
@@ -175,7 +175,7 @@ public class VeepooSDKModule: Module {
         "deviceNumber": "simulator",
         "deviceVersion": "simulator"
       ]
-      self.sendEvent(VeepooSimulatorEvent.passwordData, [
+      self.sendEvent(SmartWearableLinkSimulatorEvent.passwordData, [
         "deviceId": self.connectedDeviceId ?? "",
         "data": payload
       ])
@@ -192,7 +192,7 @@ public class VeepooSDKModule: Module {
         "isPercent": true,
         "isLowBattery": false
       ]
-      self.sendEvent(VeepooSimulatorEvent.batteryData, [
+      self.sendEvent(SmartWearableLinkSimulatorEvent.batteryData, [
         "deviceId": self.connectedDeviceId ?? "",
         "data": payload
       ])
@@ -205,7 +205,7 @@ public class VeepooSDKModule: Module {
 
     AsyncFunction("readDeviceFunctions") { (promise: Promise) in
       let payload = self.simulatorDeviceFunctions()
-      self.sendEvent(VeepooSimulatorEvent.deviceFunction, [
+      self.sendEvent(SmartWearableLinkSimulatorEvent.deviceFunction, [
         "deviceId": self.connectedDeviceId ?? "",
         "data": payload
       ])
@@ -214,7 +214,7 @@ public class VeepooSDKModule: Module {
 
     AsyncFunction("readSocialMsgData") { (promise: Promise) in
       let payload = [String: Any]()
-      self.sendEvent(VeepooSimulatorEvent.socialMsgData, [
+      self.sendEvent(SmartWearableLinkSimulatorEvent.socialMsgData, [
         "deviceId": self.connectedDeviceId ?? "",
         "data": payload
       ])
@@ -223,7 +223,7 @@ public class VeepooSDKModule: Module {
 
     AsyncFunction("readDeviceVersion") { (promise: Promise) in
       let payload = self.simulatorDeviceVersion()
-      self.sendEvent(VeepooSimulatorEvent.deviceVersion, [
+      self.sendEvent(SmartWearableLinkSimulatorEvent.deviceVersion, [
         "deviceId": self.connectedDeviceId ?? "",
         "data": payload
       ])
@@ -231,7 +231,7 @@ public class VeepooSDKModule: Module {
     }
 
     AsyncFunction("startReadOriginData") { (promise: Promise) in
-      self.sendEvent(VeepooSimulatorEvent.readOriginComplete, [
+      self.sendEvent(SmartWearableLinkSimulatorEvent.readOriginComplete, [
         "deviceId": self.connectedDeviceId ?? "",
         "data": [Any]()
       ])
@@ -256,7 +256,7 @@ public class VeepooSDKModule: Module {
     }
 
     AsyncFunction("readDeviceAllData") { (promise: Promise) in
-      self.sendEvent(VeepooSimulatorEvent.readOriginComplete, [
+      self.sendEvent(SmartWearableLinkSimulatorEvent.readOriginComplete, [
         "deviceId": self.connectedDeviceId ?? "",
         "data": [Any]()
       ])

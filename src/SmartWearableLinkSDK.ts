@@ -19,14 +19,14 @@ import type {
   AutoMeasureSetting,
   SleepData,
   SportStepData,
-  VeepooError,
+  SmartWearableLinkError,
   OriginData,
   DaySummaryData,
-  VeepooEvent,
-  VeepooEventPayload,
+  SmartWearableLinkEvent,
+  SmartWearableLinkEventPayload,
   PermissionsResult,
 } from './types.js';
-import type { NativeVeepooSDKInterface } from './NativeVeepooSDK.js';
+import type { NativeSmartWearableLinkSDKInterface } from './NativeSmartWearableLinkSDK.js';
 import {
   normalizeAutoMeasureSettings,
   normalizeBatteryInfo,
@@ -54,22 +54,22 @@ type EventListener = (payload: unknown) => void;
 type LogListener = (entry: LogEntry) => void;
 
 const LINKING_ERROR =
-  "The package 'expo-veepoo-sdk' doesn't seem to be linked. Make sure:\n\n" +
+  "The package 'expo-smart-wearable-link' doesn't seem to be linked. Make sure:\n\n" +
   '- You rebuilt the app after installing the package\n' +
   '- You are not using Expo Go (this module requires a development build)\n';
 
-let NativeModule: NativeVeepooSDKInterface;
+let NativeModule: NativeSmartWearableLinkSDKInterface;
 try {
-  NativeModule = requireNativeModule<NativeVeepooSDKInterface>('VeepooSDK');
+  NativeModule = requireNativeModule<NativeSmartWearableLinkSDKInterface>('SmartWearableLinkSDK');
 } catch {
-  NativeModule = new Proxy({} as NativeVeepooSDKInterface, {
+  NativeModule = new Proxy({} as NativeSmartWearableLinkSDKInterface, {
     get() {
       throw new Error(LINKING_ERROR);
     },
   });
 }
 
-export class VeepooSDK {
+export class SmartWearableLinkSDK {
   private isScanning = false;
   private isInitialized = false;
   private connectedDeviceId: string | null = null;
@@ -77,7 +77,7 @@ export class VeepooSDK {
   private lastReadOriginProgressByDevice: Map<string, number> = new Map();
   private logEnabled = false;
   private logger: LogListener | null = null;
-  private listeners: Map<VeepooEvent, Set<EventListener>> = new Map();
+  private listeners: Map<SmartWearableLinkEvent, Set<EventListener>> = new Map();
   private nativeSubscriptions: EventSubscription[] = [];
 
   private getPlatform(): LogEntry['platform'] {
@@ -117,7 +117,7 @@ export class VeepooSDK {
             : level === 'info'
               ? console.info
               : console.debug;
-      consoleMethod('[VeepooSDK]', entry);
+      consoleMethod('[SmartWearableLinkSDK]', entry);
     }
 
     if (this.logger) {
@@ -125,7 +125,7 @@ export class VeepooSDK {
         this.logger(entry);
       } catch (error) {
         if (this.logEnabled) {
-          console.error('[VeepooSDK]', {
+          console.error('[SmartWearableLinkSDK]', {
             timestamp: Date.now(),
             level: 'error',
             scope: 'listener',
@@ -143,7 +143,7 @@ export class VeepooSDK {
     if (this.eventListenersSetup) return;
     this.eventListenersSetup = true;
 
-    const events: VeepooEvent[] = [
+    const events: SmartWearableLinkEvent[] = [
       'deviceFound',
       'deviceConnected',
       'deviceDisconnected',
@@ -182,7 +182,7 @@ export class VeepooSDK {
     });
   }
 
-  private emitLocal(event: VeepooEvent, payload: unknown): void {
+  private emitLocal(event: SmartWearableLinkEvent, payload: unknown): void {
     const normalizedPayload =
       event === 'bluetoothStateChanged'
         ? normalizeBluetoothStatus(payload)
@@ -313,7 +313,7 @@ export class VeepooSDK {
     }
   }
 
-  private getEventScope(event: VeepooEvent): LogScope {
+  private getEventScope(event: SmartWearableLinkEvent): LogScope {
     if (event === 'deviceFound') return 'scan';
     if (event === 'bluetoothStateChanged') return 'bluetooth';
     if (event === 'deviceConnected' || event === 'deviceDisconnected' || event === 'deviceConnectStatus' || event === 'deviceReady' || event === 'connectionStatusChanged') {
@@ -341,18 +341,18 @@ export class VeepooSDK {
     return typeof payload === 'object' && payload !== null;
   }
 
-  private handleError(error: unknown, code: VeepooError['code'], deviceId?: string): VeepooError {
-    const veepooError: VeepooError = {
+  private handleError(error: unknown, code: SmartWearableLinkError['code'], deviceId?: string): SmartWearableLinkError {
+    const smartWearableLinkError: SmartWearableLinkError = {
       code,
       message: error instanceof Error ? error.message : String(error),
       deviceId,
     };
-    this.log('error', 'sdk', `error.${code}`, veepooError.message, {
+    this.log('error', 'sdk', `error.${code}`, smartWearableLinkError.message, {
       deviceId,
       error,
     });
-    this.emitLocal('error', veepooError);
-    return veepooError;
+    this.emitLocal('error', smartWearableLinkError);
+    return smartWearableLinkError;
   }
 
   async init(): Promise<void> {
@@ -710,9 +710,9 @@ export class VeepooSDK {
     return this.connectedDeviceId;
   }
 
-  on<K extends VeepooEvent>(
+  on<K extends SmartWearableLinkEvent>(
     event: K,
-    listener: (payload: VeepooEventPayload[K]) => void
+    listener: (payload: SmartWearableLinkEventPayload[K]) => void
   ): this {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
@@ -721,9 +721,9 @@ export class VeepooSDK {
     return this;
   }
 
-  off<K extends VeepooEvent>(
+  off<K extends SmartWearableLinkEvent>(
     event: K,
-    listener: (payload: VeepooEventPayload[K]) => void
+    listener: (payload: SmartWearableLinkEventPayload[K]) => void
   ): this {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
@@ -732,9 +732,9 @@ export class VeepooSDK {
     return this;
   }
 
-  once<K extends VeepooEvent>(
+  once<K extends SmartWearableLinkEvent>(
     event: K,
-    listener: (payload: VeepooEventPayload[K]) => void
+    listener: (payload: SmartWearableLinkEventPayload[K]) => void
   ): this {
     const onceWrapper: EventListener = (payload) => {
       this.off(event, listener);
@@ -747,7 +747,7 @@ export class VeepooSDK {
     return this;
   }
 
-  removeAllListeners(event?: VeepooEvent): this {
+  removeAllListeners(event?: SmartWearableLinkEvent): this {
     if (event) {
       this.listeners.delete(event);
     } else {
@@ -773,5 +773,5 @@ export class VeepooSDK {
   }
 }
 
-const sdk = new VeepooSDK();
+const sdk = new SmartWearableLinkSDK();
 export default sdk;

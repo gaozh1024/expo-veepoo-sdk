@@ -5,23 +5,23 @@ import {
   AndroidConfig,
 } from '@expo/config-plugins';
 
-type VeepooSDKPluginProps = {
+type SmartWearableLinkSDKPluginProps = {
   bluetoothAlwaysPermission?: string;
   bluetoothPeripheralPermission?: string;
 };
 
-const DEFAULT_OPTIONS: VeepooSDKPluginProps = {
+const DEFAULT_OPTIONS: SmartWearableLinkSDKPluginProps = {
   bluetoothAlwaysPermission:
-    'This app needs Bluetooth permission to connect to Veepoo devices',
+    'This app needs Bluetooth permission to connect to your wearable device.',
   bluetoothPeripheralPermission:
     'This app needs Bluetooth permission to scan and connect to devices',
 };
 
-const withVeepooSDK: ConfigPlugin<VeepooSDKPluginProps | void> = (
+const withSmartWearableLinkSDK: ConfigPlugin<SmartWearableLinkSDKPluginProps | void> = (
   config,
   props
 ) => {
-  const options: VeepooSDKPluginProps = {
+  const options: SmartWearableLinkSDKPluginProps = {
     bluetoothAlwaysPermission:
       props?.bluetoothAlwaysPermission ?? DEFAULT_OPTIONS.bluetoothAlwaysPermission!,
     bluetoothPeripheralPermission:
@@ -34,7 +34,7 @@ const withVeepooSDK: ConfigPlugin<VeepooSDKPluginProps | void> = (
   return config;
 };
 
-const withIOSBluetoothPermissions: ConfigPlugin<VeepooSDKPluginProps> = (
+const withIOSBluetoothPermissions: ConfigPlugin<SmartWearableLinkSDKPluginProps> = (
   config,
   options
 ) => {
@@ -59,7 +59,7 @@ const withAndroidBluetoothPermissions: ConfigPlugin = (config) => {
 
     AndroidConfig.Manifest.addMetaDataItemToMainApplication(
       mainApplication,
-      'expo.modules.veepoo.enabled',
+      'expo.modules.smartwearablelink.enabled',
       'true'
     );
 
@@ -92,4 +92,4 @@ const withAndroidBluetoothPermissions: ConfigPlugin = (config) => {
   });
 };
 
-export default withVeepooSDK;
+export default withSmartWearableLinkSDK;

@@ -3,7 +3,7 @@ import { requireNativeModule, EventSubscription } from 'expo-modules-core';
 import type {
   ConnectionStatus,
   PersonalInfo,
-  VeepooEvent,
+  SmartWearableLinkEvent,
   ScanOptions,
   ConnectOptions,
   Language,
@@ -12,11 +12,11 @@ import type {
 } from './types.js';
 
 const LINKING_ERROR =
-  "The package 'expo-veepoo-sdk' doesn't seem to be linked. Make sure:\n\n" +
+  "The package 'expo-smart-wearable-link' doesn't seem to be linked. Make sure:\n\n" +
   '- You rebuilt the app after installing the package\n' +
   '- You are not using Expo Go (this module requires a development build)\n';
 
-export interface NativeVeepooSDKInterface {
+export interface NativeSmartWearableLinkSDKInterface {
   init(): Promise<void>;
   isBluetoothEnabled(): Promise<boolean>;
   requestPermissions(): Promise<PermissionsResult>;
@@ -52,26 +52,26 @@ export interface NativeVeepooSDKInterface {
   stopStressTest(): Promise<void>;
   startBloodGlucoseTest(): Promise<void>;
   stopBloodGlucoseTest(): Promise<void>;
-  addListener(event: VeepooEvent, listener: (payload: unknown) => void): EventSubscription;
+  addListener(event: SmartWearableLinkEvent, listener: (payload: unknown) => void): EventSubscription;
   removeListeners(count: number): void;
 }
 
-let NativeModule: NativeVeepooSDKInterface;
+let NativeModule: NativeSmartWearableLinkSDKInterface;
 
 try {
-  NativeModule = requireNativeModule('VeepooSDK');
+  NativeModule = requireNativeModule('SmartWearableLinkSDK');
 } catch {
-  NativeModule = new Proxy({} as NativeVeepooSDKInterface, {
+  NativeModule = new Proxy({} as NativeSmartWearableLinkSDKInterface, {
     get() {
       throw new Error(LINKING_ERROR);
     },
   });
 }
 
-export { NativeModule as NativeVeepooSDK };
+export { NativeModule as NativeSmartWearableLinkSDK };
 
-class VeepooSDKNativeWrapper implements NativeVeepooSDKInterface {
-  private native: NativeVeepooSDKInterface;
+class SmartWearableLinkSDKNativeWrapper implements NativeSmartWearableLinkSDKInterface {
+  private native: NativeSmartWearableLinkSDKInterface;
 
   constructor() {
     this.native = NativeModule;
@@ -217,7 +217,7 @@ class VeepooSDKNativeWrapper implements NativeVeepooSDKInterface {
     return this.native.stopBloodGlucoseTest();
   }
 
-  addListener(event: VeepooEvent, listener: (payload: unknown) => void): EventSubscription {
+  addListener(event: SmartWearableLinkEvent, listener: (payload: unknown) => void): EventSubscription {
     return this.native.addListener(event, listener);
   }
 
@@ -226,4 +226,4 @@ class VeepooSDKNativeWrapper implements NativeVeepooSDKInterface {
   }
 }
 
-export default new VeepooSDKNativeWrapper();
+export default new SmartWearableLinkSDKNativeWrapper();

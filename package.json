@@ -1,7 +1,7 @@
 {
-  "name": "@gaozh1024/expo-veepoo-sdk",
+  "name": "@gaozh1024/expo-smart-wearable-link",
   "version": "1.2.8",
-  "description": "Expo module for Veepoo SDK Bluetooth connectivity",
+  "description": "Expo module for Smart Wearable Link Bluetooth connectivity",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
@@ -19,12 +19,13 @@
   "keywords": [
     "expo",
     "react-native",
-    "veepoo",
+    "smart-wearable",
+    "wearable",
     "bluetooth",
     "ble",
     "@gaozh1024",
-    "expo-veepoo-sdk",
-    "@gaozh1024/expo-veepoo-sdk"
+    "expo-smart-wearable-link",
+    "@gaozh1024/expo-smart-wearable-link"
   ],
   "author": "",
   "license": "MIT",

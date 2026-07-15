@@ -1,4 +1,4 @@
-package expo.modules.veepoo
+package expo.modules.smartwearablelink
 
 import android.Manifest
 import android.bluetooth.BluetoothManager
@@ -38,12 +38,12 @@ import com.veepoo.protocol.model.settings.CustomSettingData
 import expo.modules.kotlin.Promise
 
 // 模块基础工具方法
-fun VeepooSDKModule.isBluetoothEnabled(): Boolean {
+fun SmartWearableLinkSDKModule.isBluetoothEnabled(): Boolean {
   val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
   return manager?.adapter?.isEnabled == true
 }
 
-fun VeepooSDKModule.hasBluetoothPermissions(): Boolean {
+fun SmartWearableLinkSDKModule.hasBluetoothPermissions(): Boolean {
   return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
     context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
       context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
@@ -52,7 +52,7 @@ fun VeepooSDKModule.hasBluetoothPermissions(): Boolean {
   }
 }
 
-fun VeepooSDKModule.emitConnectionStatus(deviceId: String, status: String, code: Int? = null) {
+fun SmartWearableLinkSDKModule.emitConnectionStatus(deviceId: String, status: String, code: Int? = null) {
   val payload = mutableMapOf<String, Any>(
     "deviceId" to deviceId,
     "status" to status
@@ -67,7 +67,7 @@ fun VeepooSDKModule.emitConnectionStatus(deviceId: String, status: String, code:
   ))
 }
 
-fun VeepooSDKModule.emitBluetoothStatus() {
+fun SmartWearableLinkSDKModule.emitBluetoothStatus() {
   val enabled = isBluetoothEnabled()
   val hasPermissions = hasBluetoothPermissions()
 
@@ -123,7 +123,7 @@ fun normalizeTestState(rawState: String?): String {
 }
 
 // 功能包映射到统一结构
-fun VeepooSDKModule.updateFunctionsFromSupportData(data: FunctionDeviceSupportData) {
+fun SmartWearableLinkSDKModule.updateFunctionsFromSupportData(data: FunctionDeviceSupportData) {
   val package1 = mapOf(
     "bloodPressure" to toSupportedStatus(data.bp),
     "heartRateDetect" to toSupportedStatus(data.heartDetect),
@@ -146,7 +146,7 @@ fun VeepooSDKModule.updateFunctionsFromSupportData(data: FunctionDeviceSupportDa
   cachedDeviceFunctions["package3"] = package3
 }
 
-fun VeepooSDKModule.verifyPasswordInternal(deviceId: String, password: String, is24Hour: Boolean) {
+fun SmartWearableLinkSDKModule.verifyPasswordInternal(deviceId: String, password: String, is24Hour: Boolean) {
   val manager = VPOperateManager.getInstance() ?: return
   
   manager.confirmDevicePwd(
@@ -195,7 +195,7 @@ fun VeepooSDKModule.verifyPasswordInternal(deviceId: String, password: String, i
   )
 }
 
-fun VeepooSDKModule.cleanup() {
+fun SmartWearableLinkSDKModule.cleanup() {
   val manager = VPOperateManager.getInstance()
   manager?.stopScanDevice()
   manager?.disconnectWatch(object : IBleWriteResponse {
@@ -210,7 +210,7 @@ fun VeepooSDKModule.cleanup() {
 }
 
 // 压力测量循环
-fun VeepooSDKModule.startPressureLoop(firstPromise: Promise? = null) {
+fun SmartWearableLinkSDKModule.startPressureLoop(firstPromise: Promise? = null) {
   if (!isPressureMeasuring) return
   
   val dataTypeList = java.util.ArrayList<DeviceManualDataType>()
@@ -292,7 +292,7 @@ fun VeepooSDKModule.startPressureLoop(firstPromise: Promise? = null) {
 const val TEST_PROGRESS_TOTAL_SECONDS = 25
 const val TEST_PROGRESS_INCREMENT = 4
 
-fun VeepooSDKModule.startSimulatedHeartRateProgress(
+fun SmartWearableLinkSDKModule.startSimulatedHeartRateProgress(
   onProgress: (Int) -> Unit,
   onComplete: () -> Unit
 ) {
@@ -319,7 +319,7 @@ fun VeepooSDKModule.startSimulatedHeartRateProgress(
   mainHandler.post(heartRateTestRunnable!!)
 }
 
-fun VeepooSDKModule.stopSimulatedHeartRateProgress() {
+fun SmartWearableLinkSDKModule.stopSimulatedHeartRateProgress() {
   isHeartRateTesting = false
   heartRateTestRunnable?.let {
     mainHandler.removeCallbacks(it)
@@ -328,7 +328,7 @@ fun VeepooSDKModule.stopSimulatedHeartRateProgress() {
   heartRateTestProgress = 0
 }
 
-fun VeepooSDKModule.startSimulatedBloodOxygenProgress(
+fun SmartWearableLinkSDKModule.startSimulatedBloodOxygenProgress(
   onProgress: (Int) -> Unit,
   onComplete: () -> Unit
 ) {
@@ -355,7 +355,7 @@ fun VeepooSDKModule.startSimulatedBloodOxygenProgress(
   mainHandler.post(bloodOxygenTestRunnable!!)
 }
 
-fun VeepooSDKModule.stopSimulatedBloodOxygenProgress() {
+fun SmartWearableLinkSDKModule.stopSimulatedBloodOxygenProgress() {
   isBloodOxygenTesting = false
   bloodOxygenTestRunnable?.let {
     mainHandler.removeCallbacks(it)

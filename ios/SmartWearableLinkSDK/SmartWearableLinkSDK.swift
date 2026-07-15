@@ -3,7 +3,7 @@ import CoreBluetooth
 import VeepooBleSDK
 
 // MARK: - 事件常量
-enum VeepooEvent {
+enum SmartWearableLinkEvent {
   static let deviceFound = "deviceFound"
   static let deviceConnected = "deviceConnected"
   static let deviceDisconnected = "deviceDisconnected"
@@ -32,37 +32,37 @@ enum VeepooEvent {
   static let error = "error"
 }
 
-let DEVICE_FOUND = VeepooEvent.deviceFound
-let DEVICE_CONNECTED = VeepooEvent.deviceConnected
-let DEVICE_DISCONNECTED = VeepooEvent.deviceDisconnected
-let DEVICE_CONNECT_STATUS = VeepooEvent.deviceConnectStatus
-let CONNECTION_STATUS_CHANGED = VeepooEvent.connectionStatusChanged
-let DEVICE_READY = VeepooEvent.deviceReady
-let BLUETOOTH_STATE_CHANGED = VeepooEvent.bluetoothStateChanged
-let DEVICE_FUNCTION = VeepooEvent.deviceFunction
-let DEVICE_VERSION = VeepooEvent.deviceVersion
-let PASSWORD_DATA = VeepooEvent.passwordData
-let BATTERY_DATA = VeepooEvent.batteryData
-let HEART_RATE_TEST_RESULT = VeepooEvent.heartRateTestResult
-let BLOOD_PRESSURE_TEST_RESULT = VeepooEvent.bloodPressureTestResult
-let BLOOD_OXYGEN_TEST_RESULT = VeepooEvent.bloodOxygenTestResult
-let TEMPERATURE_TEST_RESULT = VeepooEvent.temperatureTestResult
-let STRESS_DATA = VeepooEvent.stressData
-let BLOOD_GLUCOSE_DATA = VeepooEvent.bloodGlucoseData
-let SLEEP_DATA = VeepooEvent.sleepData
-let SPORT_STEP_DATA = VeepooEvent.sportStepData
-let READ_ORIGIN_PROGRESS = VeepooEvent.readOriginProgress
-let READ_ORIGIN_COMPLETE = VeepooEvent.readOriginComplete
-let ORIGIN_FIVE_MINUTE_DATA = VeepooEvent.originFiveMinuteData
-let ORIGIN_HALF_HOUR_DATA = VeepooEvent.originHalfHourData
-let ORIGIN_SPO2_DATA = VeepooEvent.originSpo2Data
-let SOCIAL_MSG_DATA = VeepooEvent.socialMsgData
-let ERROR = VeepooEvent.error
+let DEVICE_FOUND = SmartWearableLinkEvent.deviceFound
+let DEVICE_CONNECTED = SmartWearableLinkEvent.deviceConnected
+let DEVICE_DISCONNECTED = SmartWearableLinkEvent.deviceDisconnected
+let DEVICE_CONNECT_STATUS = SmartWearableLinkEvent.deviceConnectStatus
+let CONNECTION_STATUS_CHANGED = SmartWearableLinkEvent.connectionStatusChanged
+let DEVICE_READY = SmartWearableLinkEvent.deviceReady
+let BLUETOOTH_STATE_CHANGED = SmartWearableLinkEvent.bluetoothStateChanged
+let DEVICE_FUNCTION = SmartWearableLinkEvent.deviceFunction
+let DEVICE_VERSION = SmartWearableLinkEvent.deviceVersion
+let PASSWORD_DATA = SmartWearableLinkEvent.passwordData
+let BATTERY_DATA = SmartWearableLinkEvent.batteryData
+let HEART_RATE_TEST_RESULT = SmartWearableLinkEvent.heartRateTestResult
+let BLOOD_PRESSURE_TEST_RESULT = SmartWearableLinkEvent.bloodPressureTestResult
+let BLOOD_OXYGEN_TEST_RESULT = SmartWearableLinkEvent.bloodOxygenTestResult
+let TEMPERATURE_TEST_RESULT = SmartWearableLinkEvent.temperatureTestResult
+let STRESS_DATA = SmartWearableLinkEvent.stressData
+let BLOOD_GLUCOSE_DATA = SmartWearableLinkEvent.bloodGlucoseData
+let SLEEP_DATA = SmartWearableLinkEvent.sleepData
+let SPORT_STEP_DATA = SmartWearableLinkEvent.sportStepData
+let READ_ORIGIN_PROGRESS = SmartWearableLinkEvent.readOriginProgress
+let READ_ORIGIN_COMPLETE = SmartWearableLinkEvent.readOriginComplete
+let ORIGIN_FIVE_MINUTE_DATA = SmartWearableLinkEvent.originFiveMinuteData
+let ORIGIN_HALF_HOUR_DATA = SmartWearableLinkEvent.originHalfHourData
+let ORIGIN_SPO2_DATA = SmartWearableLinkEvent.originSpo2Data
+let SOCIAL_MSG_DATA = SmartWearableLinkEvent.socialMsgData
+let ERROR = SmartWearableLinkEvent.error
 
 // MARK: - 权限回调委托
 final class PermissionDelegate: NSObject, CBCentralManagerDelegate {
-  private weak var module: VeepooSDKModule?
-  init(module: VeepooSDKModule) { self.module = module }
+  private weak var module: SmartWearableLinkSDKModule?
+  init(module: SmartWearableLinkSDKModule) { self.module = module }
   func centralManagerDidUpdateState(_ central: CBCentralManager) {
     module?.handlePermissionStateUpdate(central)
   }
@@ -91,7 +91,7 @@ enum ConnectionState {
 }
 
 // MARK: - 主模块
-public class VeepooSDKModule: Module {
+public class SmartWearableLinkSDKModule: Module {
   var bleManager: VPBleCentralManage?
   var peripheralManage: VPPeripheralManage?
   var isScanning = false
@@ -113,7 +113,7 @@ public class VeepooSDKModule: Module {
   
   var connectionState: ConnectionState = .idle {
     didSet {
-      print("[VeepooSDK] 状态变化: \(oldValue.rawValue) -> \(connectionState.rawValue)")
+      print("[SmartWearableLinkSDK] 状态变化: \(oldValue.rawValue) -> \(connectionState.rawValue)")
       let previousStatus = publicConnectionStatus(for: oldValue)
       let currentStatus = publicConnectionStatus(for: connectionState)
       if previousStatus != currentStatus, let deviceId = connectedDeviceId ?? activeConnectDeviceId {
@@ -184,7 +184,7 @@ public class VeepooSDKModule: Module {
   }
 
   public func definition() -> ModuleDefinition {
-    Name("VeepooSDK")
+    Name("SmartWearableLinkSDK")
 
     // MARK: Events
     Events(
@@ -208,7 +208,7 @@ public class VeepooSDKModule: Module {
         promise.resolve(nil)
         #else
         guard let manager = VPBleCentralManage.sharedBleManager() else {
-          promise.reject("SDK_NOT_AVAILABLE", "Failed to initialize Veepoo SDK")
+          promise.reject("SDK_NOT_AVAILABLE", "Failed to initialize Smart Wearable Link SDK")
           return
         }
         self.bleManager = manager
@@ -216,7 +216,7 @@ public class VeepooSDKModule: Module {
         manager.peripheralManage = self.peripheralManage
         manager.isLogEnable = true
         manager.manufacturerIDFilter = false
-        self.setupVeepooCallbacks()
+        self.setupSmartWearableLinkCallbacks()
         self.isInitialized = true
         self.ensureCentralManager()
         promise.resolve(nil)
@@ -324,7 +324,7 @@ public class VeepooSDKModule: Module {
       self.sendEvent(DEVICE_READY, ["deviceId": deviceId, "isOadModel": false])
       promise.resolve(nil)
       #else
-      print("[VeepooSDK] connect - 请求连接, deviceId: \(deviceId), options: \(String(describing: options)), currentState: \(self.connectionState.rawValue), connectedDeviceId: \(self.connectedDeviceId ?? "nil"), activeConnectDeviceId: \(self.activeConnectDeviceId ?? "nil"), discoveredCount: \(self.discoveredDevices.count)")
+      print("[SmartWearableLinkSDK] connect - 请求连接, deviceId: \(deviceId), options: \(String(describing: options)), currentState: \(self.connectionState.rawValue), connectedDeviceId: \(self.connectedDeviceId ?? "nil"), activeConnectDeviceId: \(self.activeConnectDeviceId ?? "nil"), discoveredCount: \(self.discoveredDevices.count)")
       guard self.isInitialized else {
         promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized")
         return
@@ -355,7 +355,7 @@ public class VeepooSDKModule: Module {
       }
       if peripheralModel == nil, let uuidStr = uuidString, let uuid = UUID(uuidString: uuidStr), let central = self.centralManager {
         let peripherals = central.retrievePeripherals(withIdentifiers: [uuid])
-        print("[VeepooSDK] connect - retrievePeripherals, uuid: \(uuidStr), count: \(peripherals.count)")
+        print("[SmartWearableLinkSDK] connect - retrievePeripherals, uuid: \(uuidStr), count: \(peripherals.count)")
         if let peripheral = peripherals.first {
           peripheralModel = VPPeripheralModel(peripher: peripheral)
           if let recoveredModel = peripheralModel {
@@ -366,12 +366,12 @@ public class VeepooSDKModule: Module {
         }
       }
 
-      print("[VeepooSDK] connect - 模型解析结果, deviceId: \(deviceId), modelSource: \(modelSource), uuid: \(uuidString ?? "nil"), foundModel: \(peripheralModel != nil)")
+      print("[SmartWearableLinkSDK] connect - 模型解析结果, deviceId: \(deviceId), modelSource: \(modelSource), uuid: \(uuidString ?? "nil"), foundModel: \(peripheralModel != nil)")
 
       let shouldUseScanFallbackDirectly = modelSource == "retrieved:uuid" || modelSource == "none"
 
       if shouldUseScanFallbackDirectly {
-        print("[VeepooSDK] connect - 当前仅有 UUID 恢复模型或无模型，直接进入隐藏扫描兜底, deviceId: \(deviceId), modelSource: \(modelSource)")
+        print("[SmartWearableLinkSDK] connect - 当前仅有 UUID 恢复模型或无模型，直接进入隐藏扫描兜底, deviceId: \(deviceId), modelSource: \(modelSource)")
         self.startScanConnectFallback(
           deviceId: deviceId,
           password: password,
@@ -387,7 +387,7 @@ public class VeepooSDKModule: Module {
           promise: promise,
           fallbackToScan: { [weak self] in
             guard let self = self else { return }
-            print("[VeepooSDK] connect - performConnect 失败，进入扫描兜底, deviceId: \(deviceId)")
+            print("[SmartWearableLinkSDK] connect - performConnect 失败，进入扫描兜底, deviceId: \(deviceId)")
             self.startScanConnectFallback(
               deviceId: deviceId,
               password: password,
@@ -397,7 +397,7 @@ public class VeepooSDKModule: Module {
           }
         )
       } else {
-        print("[VeepooSDK] connect - 无可用模型，直接进入扫描兜底, deviceId: \(deviceId), uuid: \(uuidString ?? "nil")")
+        print("[SmartWearableLinkSDK] connect - 无可用模型，直接进入扫描兜底, deviceId: \(deviceId), uuid: \(uuidString ?? "nil")")
         self.startScanConnectFallback(
           deviceId: deviceId,
           password: password,

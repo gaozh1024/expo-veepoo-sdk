@@ -1,4 +1,4 @@
-package expo.modules.veepoo
+package expo.modules.smartwearablelink
 
 import android.content.Context
 import android.content.pm.PackageManager
@@ -10,7 +10,7 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
 // Expo 模块入口
-class VeepooSDKModule : Module() {
+class SmartWearableLinkSDKModule : Module() {
   @Volatile var isScanning = false
   @Volatile var connectedDeviceId: String? = null
   @Volatile var isInitialized = false
@@ -40,16 +40,16 @@ class VeepooSDKModule : Module() {
       ?: throw IllegalStateException("Unable to get application context")
 
   override fun definition() = ModuleDefinition {
-    Name("VeepooSDK")
+    Name("SmartWearableLinkSDK")
     defineEvents()
-    defineInitialization(this@VeepooSDKModule)
-    definePermissions(this@VeepooSDKModule)
-    defineScan(this@VeepooSDKModule)
-    defineConnection(this@VeepooSDKModule)
-    defineReadData(this@VeepooSDKModule)
-    defineWriteData(this@VeepooSDKModule)
-    defineTests(this@VeepooSDKModule)
-    defineLifecycle(this@VeepooSDKModule)
+    defineInitialization(this@SmartWearableLinkSDKModule)
+    definePermissions(this@SmartWearableLinkSDKModule)
+    defineScan(this@SmartWearableLinkSDKModule)
+    defineConnection(this@SmartWearableLinkSDKModule)
+    defineReadData(this@SmartWearableLinkSDKModule)
+    defineWriteData(this@SmartWearableLinkSDKModule)
+    defineTests(this@SmartWearableLinkSDKModule)
+    defineLifecycle(this@SmartWearableLinkSDKModule)
   }
 
   fun handlePermissionResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {

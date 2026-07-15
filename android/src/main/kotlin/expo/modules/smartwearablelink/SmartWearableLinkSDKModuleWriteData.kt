@@ -1,4 +1,4 @@
-package expo.modules.veepoo
+package expo.modules.smartwearablelink
 
 import android.util.Log
 import com.inuker.bluetooth.library.Code
@@ -85,7 +85,7 @@ private fun mapToAutoMeasureData(map: Map<String, Any?>): AutoMeasureData {
   return data
 }
 
-fun ModuleDefinitionBuilder.defineWriteData(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.defineWriteData(module: SmartWearableLinkSDKModule) {
   AsyncFunction("readAutoMeasureSetting") { promise: Promise ->
     if (!module.isInitialized || module.connectedDeviceId == null) {
       promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)

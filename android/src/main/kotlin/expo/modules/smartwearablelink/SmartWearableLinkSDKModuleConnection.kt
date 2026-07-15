@@ -1,4 +1,4 @@
-package expo.modules.veepoo
+package expo.modules.smartwearablelink
 
 import android.os.Handler
 import android.os.Looper
@@ -26,7 +26,7 @@ import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 
 // 连接相关
-fun ModuleDefinitionBuilder.defineConnection(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.defineConnection(module: SmartWearableLinkSDKModule) {
   AsyncFunction("connect") { deviceId: String, options: Map<String, Any?>?, promise: Promise ->
     if (!module.isInitialized) {
       promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized", null)
@@ -47,7 +47,7 @@ fun ModuleDefinitionBuilder.defineConnection(module: VeepooSDKModule) {
       deviceId,
       object : IConnectResponse {
         override fun connectState(code: Int, profile: BleGattProfile?, isOadModel: Boolean) {
-          Log.d("VeepooSDKModule", "Connection state: $code for device: $deviceId")
+          Log.d("SmartWearableLinkSDKModule", "Connection state: $code for device: $deviceId")
           
           if (code == Code.REQUEST_SUCCESS) {
             module.connectedDeviceId = deviceId
@@ -98,7 +98,7 @@ fun ModuleDefinitionBuilder.defineConnection(module: VeepooSDKModule) {
         }
       )
     } catch (e: Exception) {
-      Log.e("VeepooSDKModule", "Error disconnecting", e)
+      Log.e("SmartWearableLinkSDKModule", "Error disconnecting", e)
       promise.reject("DISCONNECT_ERROR", e.message, e)
     }
   }

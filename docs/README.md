@@ -2,13 +2,13 @@
 
 当前 `docs/` 目录包含两类文档：
 
-- Veepoo 原厂 SDK 文档
+- Smart Wearable Link 原厂 SDK 文档
 - 包版本升级说明
 
 ## Vendor SDK
 
-- `VeepooSDK Android Api.md`
-- `VeepooSDK iOS Api.md`
+- `SmartWearableLinkSDK Android Api.md`
+- `SmartWearableLinkSDK iOS Api.md`
 
 ## Release Notes
 

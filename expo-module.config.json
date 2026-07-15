@@ -1,10 +1,10 @@
 {
   "platforms": ["ios", "android"],
   "ios": {
-    "modules": ["VeepooSDKModule"]
+    "modules": ["SmartWearableLinkSDKModule"]
   },
   "android": {
-    "modules": ["expo.modules.veepoo.VeepooSDKModule"],
+    "modules": ["expo.modules.smartwearablelink.SmartWearableLinkSDKModule"],
     "gradleAarProjects": [
       {
         "name": "abpartool",

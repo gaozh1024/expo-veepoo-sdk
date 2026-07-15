@@ -14,7 +14,7 @@ private class ValueWrapper<T> {
 }
 
 // MARK: - 数据读取和测试方法的实现
-extension VeepooSDKModule {
+extension SmartWearableLinkSDKModule {
   func ensureMeasurementCanStart(type: String, promise: Promise) -> Bool {
     #if !targetEnvironment(simulator)
     let connectedId = self.connectedDeviceId ?? self.activeConnectDeviceId ?? ""

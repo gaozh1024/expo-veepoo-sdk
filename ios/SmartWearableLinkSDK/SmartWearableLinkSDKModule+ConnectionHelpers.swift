@@ -3,7 +3,7 @@ import CoreBluetooth
 import VeepooBleSDK
 
 /// 连接与蓝牙状态辅助方法
-extension VeepooSDKModule {
+extension SmartWearableLinkSDKModule {
   func emitNativeError(code: String, message: String, deviceId: String? = nil, rawCode: Int? = nil) {
     var payload: [String: Any] = [
       "code": code,
@@ -51,14 +51,14 @@ extension VeepooSDKModule {
     fallbackToScan: (() -> Void)? = nil
   ) {
     #if !targetEnvironment(simulator)
-    print("[VeepooSDK] performConnect - 开始, deviceId: \(deviceId)")
-    print("[VeepooSDK] performConnect - 当前上下文, connectedDeviceId: \(self.connectedDeviceId ?? "nil"), activeConnectDeviceId: \(self.activeConnectDeviceId ?? "nil"), state: \(self.connectionState.rawValue), pendingScanStart: \(self.pendingScanStart), isScanning: \(self.isScanning)")
+    print("[SmartWearableLinkSDK] performConnect - 开始, deviceId: \(deviceId)")
+    print("[SmartWearableLinkSDK] performConnect - 当前上下文, connectedDeviceId: \(self.connectedDeviceId ?? "nil"), activeConnectDeviceId: \(self.activeConnectDeviceId ?? "nil"), state: \(self.connectionState.rawValue), pendingScanStart: \(self.pendingScanStart), isScanning: \(self.isScanning)")
 
     activeConnectDeviceId = deviceId
     connectionState = .connecting
 
     guard let manager = self.bleManager else {
-      print("[VeepooSDK] performConnect - 错误: bleManager 为 nil")
+      print("[SmartWearableLinkSDK] performConnect - 错误: bleManager 为 nil")
       activeConnectDeviceId = nil
       connectionState = .error("BLE manager is nil")
       emitNativeError(code: "SDK_NOT_INITIALIZED", message: "BLE manager is nil", deviceId: deviceId)
@@ -66,7 +66,7 @@ extension VeepooSDKModule {
       return
     }
 
-    print("[VeepooSDK] performConnect - 调用 veepooSDKConnectDevice")
+    print("[SmartWearableLinkSDK] performConnect - calling native connect API")
 
     var isSettled = false
 
@@ -74,7 +74,7 @@ extension VeepooSDKModule {
       guard let self = self else { return }
       guard !isSettled else { return }
       isSettled = true
-      print("[VeepooSDK] performConnect - 连接超时, deviceId: \(deviceId), state: \(self.connectionState.rawValue), connectedDeviceId: \(self.connectedDeviceId ?? "nil"), activeConnectDeviceId: \(self.activeConnectDeviceId ?? "nil")")
+      print("[SmartWearableLinkSDK] performConnect - 连接超时, deviceId: \(deviceId), state: \(self.connectionState.rawValue), connectedDeviceId: \(self.connectedDeviceId ?? "nil"), activeConnectDeviceId: \(self.activeConnectDeviceId ?? "nil")")
       self.connectionState = .error("Connection timeout")
       self.emitConnectionStatus(deviceId: deviceId, status: "error")
       self.emitNativeError(code: "CONNECTION_TIMEOUT", message: "Connection timeout after 15 seconds", deviceId: deviceId)
@@ -88,8 +88,8 @@ extension VeepooSDKModule {
     manager.veepooSDKConnectDevice(model) { [weak self] connectState in
       guard let self = self else { return }
 
-      print("[VeepooSDK] performConnect - 连接状态: \(connectState.rawValue)")
-      print("[VeepooSDK] performConnect - 回调现场, deviceId: \(deviceId), state: \(self.connectionState.rawValue), connectedDeviceId: \(self.connectedDeviceId ?? "nil"), activeConnectDeviceId: \(self.activeConnectDeviceId ?? "nil"), isSettled: \(isSettled)")
+      print("[SmartWearableLinkSDK] performConnect - 连接状态: \(connectState.rawValue)")
+      print("[SmartWearableLinkSDK] performConnect - 回调现场, deviceId: \(deviceId), state: \(self.connectionState.rawValue), connectedDeviceId: \(self.connectedDeviceId ?? "nil"), activeConnectDeviceId: \(self.activeConnectDeviceId ?? "nil"), isSettled: \(isSettled)")
 
       switch connectState.rawValue {
       case 2:
@@ -97,13 +97,13 @@ extension VeepooSDKModule {
         isSettled = true
         self.connectionTimer?.invalidate()
         self.connectionTimer = nil
-        print("[VeepooSDK] performConnect - 连接成功")
+        print("[SmartWearableLinkSDK] performConnect - 连接成功")
         self.connectionState = .connected
         self.connectedDeviceId = deviceId
         self.sendEvent(DEVICE_CONNECTED, ["deviceId": deviceId, "isOadModel": false])
 
         self.connectionState = .authenticating
-        print("[VeepooSDK] performConnect - 准备认证，等待 0.3 秒")
+        print("[SmartWearableLinkSDK] performConnect - 准备认证，等待 0.3 秒")
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
           self.verifyPasswordInternal(deviceId: deviceId, password: password, is24Hour: is24Hour)
         }
@@ -124,7 +124,7 @@ extension VeepooSDKModule {
           rawCode: connectState.rawValue
         )
         if let fallbackToScan = fallbackToScan {
-          print("[VeepooSDK] performConnect - 连接前断开，改走隐藏扫描兜底")
+          print("[SmartWearableLinkSDK] performConnect - 连接前断开，改走隐藏扫描兜底")
           fallbackToScan()
         } else {
           promise.reject("DEVICE_DISCONNECTED", "Device disconnected before connection completed")
@@ -132,7 +132,7 @@ extension VeepooSDKModule {
 
       case 1:
         self.connectionState = .connecting
-        print("[VeepooSDK] performConnect - 仍在连接中, deviceId: \(deviceId), 将继续等待成功/失败终态")
+        print("[SmartWearableLinkSDK] performConnect - 仍在连接中, deviceId: \(deviceId), 将继续等待成功/失败终态")
         self.emitConnectionStatus(deviceId: deviceId, status: "connecting", code: connectState.rawValue)
 
       case 3:
@@ -204,7 +204,7 @@ extension VeepooSDKModule {
     timeout: TimeInterval = 5.0
   ) {
     #if !targetEnvironment(simulator)
-    print("[VeepooSDK] startScanConnectFallback - 开始, deviceId: \(deviceId), timeout: \(timeout), isScanning: \(self.isScanning), discoveredCount: \(self.discoveredDevices.count)")
+    print("[SmartWearableLinkSDK] startScanConnectFallback - 开始, deviceId: \(deviceId), timeout: \(timeout), isScanning: \(self.isScanning), discoveredCount: \(self.discoveredDevices.count)")
     self.pendingConnectDeviceId = deviceId
     self.pendingConnectPassword = password
     self.pendingConnectIs24Hour = is24Hour
@@ -218,7 +218,7 @@ extension VeepooSDKModule {
       }
       self.isScanning = true
       self.emitBluetoothStatus()
-      print("[VeepooSDK] startScanConnectFallback - 启动扫描兜底, deviceId: \(deviceId)")
+      print("[SmartWearableLinkSDK] startScanConnectFallback - 启动扫描兜底, deviceId: \(deviceId)")
       manager.veepooSDKStartScanDeviceAndReceiveScanningDevice { [weak self] peripheralModel in
         guard let self = self, let model = peripheralModel else { return }
         self.handleDiscoveredDevice(model)
@@ -228,7 +228,7 @@ extension VeepooSDKModule {
     DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { [weak self] in
       guard let self = self else { return }
       if self.pendingConnectDeviceId == deviceId {
-        print("[VeepooSDK] startScanConnectFallback - 扫描兜底超时, deviceId: \(deviceId), discoveredCount: \(self.discoveredDevices.count)")
+        print("[SmartWearableLinkSDK] startScanConnectFallback - 扫描兜底超时, deviceId: \(deviceId), discoveredCount: \(self.discoveredDevices.count)")
         self.bleManager?.veepooSDKStopScanDevice()
         self.isScanning = false
         self.pendingScanStart = false
@@ -245,7 +245,7 @@ extension VeepooSDKModule {
     #endif
   }
 
-  func setupVeepooCallbacks() {
+  func setupSmartWearableLinkCallbacks() {
     #if !targetEnvironment(simulator)
     guard let manager = self.bleManager else { return }
 
@@ -314,7 +314,7 @@ extension VeepooSDKModule {
 
     let exportId = rawAddr ?? uuid
 
-    print("[VeepooSDK] handleDiscoveredDevice - 发现设备, exportId: \(exportId), uuid: \(uuid), name: \(name), pendingConnectDeviceId: \(self.pendingConnectDeviceId ?? "nil")")
+    print("[SmartWearableLinkSDK] handleDiscoveredDevice - 发现设备, exportId: \(exportId), uuid: \(uuid), name: \(name), pendingConnectDeviceId: \(self.pendingConnectDeviceId ?? "nil")")
 
     self.discoveredDevices[exportId] = peripheralModel
     self.discoveredDevices[uuid] = peripheralModel
@@ -361,16 +361,16 @@ extension VeepooSDKModule {
 
   func verifyPasswordInternal(deviceId: String, password: String, is24Hour: Bool) {
     #if !targetEnvironment(simulator)
-    print("[VeepooSDK] verifyPasswordInternal - 开始, deviceId: \(deviceId), password: \(password), 重试次数: \(authenticationRetryCount), state: \(self.connectionState.rawValue), connectedDeviceId: \(self.connectedDeviceId ?? "nil"), activeConnectDeviceId: \(self.activeConnectDeviceId ?? "nil")")
+    print("[SmartWearableLinkSDK] verifyPasswordInternal - 开始, deviceId: \(deviceId), password: \(password), 重试次数: \(authenticationRetryCount), state: \(self.connectionState.rawValue), connectedDeviceId: \(self.connectedDeviceId ?? "nil"), activeConnectDeviceId: \(self.activeConnectDeviceId ?? "nil")")
     
     authenticationTimer?.invalidate()
     authenticationTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: false) { [weak self] _ in
       guard let self = self else { return }
-      print("[VeepooSDK] verifyPasswordInternal - 认证超时")
+      print("[SmartWearableLinkSDK] verifyPasswordInternal - 认证超时")
       
       if self.authenticationRetryCount < self.maxAuthenticationRetries {
         self.authenticationRetryCount += 1
-        print("[VeepooSDK] verifyPasswordInternal - 将进行第 \(self.authenticationRetryCount) 次重试")
+        print("[SmartWearableLinkSDK] verifyPasswordInternal - 将进行第 \(self.authenticationRetryCount) 次重试")
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
           self.verifyPasswordInternal(deviceId: deviceId, password: password, is24Hour: is24Hour)
         }
@@ -398,7 +398,7 @@ extension VeepooSDKModule {
     }
     
     guard let manager = self.bleManager else {
-      print("[VeepooSDK] verifyPasswordInternal - 错误: bleManager 为 nil")
+      print("[SmartWearableLinkSDK] verifyPasswordInternal - 错误: bleManager 为 nil")
       authenticationTimer?.invalidate()
       authenticationTimer = nil
       connectionState = .error("BLE manager is nil")
@@ -418,11 +418,11 @@ extension VeepooSDKModule {
       return
     }
     
-    print("[VeepooSDK] verifyPasswordInternal - bleManager 存在")
+    print("[SmartWearableLinkSDK] verifyPasswordInternal - bleManager 存在")
     manager.is24HourFormat = is24Hour
 
     guard let passwordType = SynchronousPasswordType(rawValue: 0) else {
-      print("[VeepooSDK] verifyPasswordInternal - 错误: SynchronousPasswordType 创建失败")
+      print("[SmartWearableLinkSDK] verifyPasswordInternal - 错误: SynchronousPasswordType 创建失败")
       authenticationTimer?.invalidate()
       authenticationTimer = nil
       connectionState = .error("Invalid password type")
@@ -442,17 +442,17 @@ extension VeepooSDKModule {
       return
     }
 
-    print("[VeepooSDK] verifyPasswordInternal - 调用 veepooSDKSynchronousPassword")
+    print("[SmartWearableLinkSDK] verifyPasswordInternal - calling native password API")
     manager.veepooSDKSynchronousPassword(with: passwordType, password: password) { [weak self] result in
       guard let self = self else {
-        print("[VeepooSDK] verifyPasswordInternal - 错误: self 为 nil")
+        print("[SmartWearableLinkSDK] verifyPasswordInternal - 错误: self 为 nil")
         return
       }
 
       self.authenticationTimer?.invalidate()
       self.authenticationTimer = nil
 
-      print("[VeepooSDK] verifyPasswordInternal - 密码验证结果: \(result.rawValue)")
+      print("[SmartWearableLinkSDK] verifyPasswordInternal - 密码验证结果: \(result.rawValue)")
 
       let success = (result.rawValue == 1) || (result.rawValue == 6)
       let status = success ? "SUCCESS" : "FAILED"
@@ -471,17 +471,17 @@ extension VeepooSDKModule {
       ])
 
       if success {
-        print("[VeepooSDK] verifyPasswordInternal - 密码验证成功, 发送 DEVICE_READY 事件")
+        print("[SmartWearableLinkSDK] verifyPasswordInternal - 密码验证成功, 发送 DEVICE_READY 事件")
         self.connectionState = .ready
         self.activeConnectDeviceId = nil
         self.authenticationRetryCount = 0
         self.sendEvent(DEVICE_READY, ["deviceId": deviceId, "isOadModel": false])
       } else {
-        print("[VeepooSDK] verifyPasswordInternal - 密码验证失败, result: \(result.rawValue)")
+        print("[SmartWearableLinkSDK] verifyPasswordInternal - 密码验证失败, result: \(result.rawValue)")
         
         if self.authenticationRetryCount < self.maxAuthenticationRetries {
           self.authenticationRetryCount += 1
-          print("[VeepooSDK] verifyPasswordInternal - 将进行第 \(self.authenticationRetryCount) 次重试")
+          print("[SmartWearableLinkSDK] verifyPasswordInternal - 将进行第 \(self.authenticationRetryCount) 次重试")
           DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.verifyPasswordInternal(deviceId: deviceId, password: password, is24Hour: is24Hour)
           }

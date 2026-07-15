@@ -1,4 +1,4 @@
-package expo.modules.veepoo
+package expo.modules.smartwearablelink
 
 import android.util.Log
 import com.inuker.bluetooth.library.search.SearchResult
@@ -8,7 +8,7 @@ import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 
 // 扫描相关
-fun ModuleDefinitionBuilder.defineScan(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.defineScan(module: SmartWearableLinkSDKModule) {
   AsyncFunction("startScan") { _: Map<String, Any?>?, promise: Promise ->
     if (!module.isInitialized) {
       promise.reject("SDK_NOT_INITIALIZED", "SDK not initialized", null)

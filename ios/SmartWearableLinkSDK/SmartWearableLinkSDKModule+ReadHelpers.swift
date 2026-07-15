@@ -2,7 +2,7 @@ import ExpoModulesCore
 import VeepooBleSDK
 
 /// 读取数据辅助方法
-extension VeepooSDKModule {
+extension SmartWearableLinkSDKModule {
   func mergeBloodGlucoseData(into item: inout [String: Any], from bgData: [String: Any]) {
     if let bgValue = bgData["bloodGlucoses"] as? [String],
        let firstStr = bgValue.first,
@@ -510,7 +510,7 @@ extension VeepooSDKModule {
       }
     }
     
-    // 下标对应关系 (根据 Veepoo SDK 文档)
+    // 下标对应关系 (根据 Smart Wearable Link SDK 文档)
     // 2: 来电, 3: 短信, 4: wechat, 5: QQ, 6: Sina, 7: Facebook, 8: X(Twitter)
     // 9: Flickr, 10: LinkedIn, 11: WhatsApp, 12: Line, 13: Instagram
     // 14: Snapchat, 15: Skype, 16: 钉钉, 17: 企业微信

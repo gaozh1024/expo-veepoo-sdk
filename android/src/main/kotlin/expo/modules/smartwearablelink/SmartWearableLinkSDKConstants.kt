@@ -1,7 +1,7 @@
-package expo.modules.veepoo
+package expo.modules.smartwearablelink
 
 // 日志标签
-const val TAG = "VeepooSDKModule"
+const val TAG = "SmartWearableLinkSDKModule"
 
 // 事件名称常量
 const val DEVICE_FOUND = "deviceFound"

@@ -1,4 +1,4 @@
-package expo.modules.veepoo
+package expo.modules.smartwearablelink
 
 import android.util.Log
 import com.inuker.bluetooth.library.Code
@@ -56,7 +56,7 @@ fun buildHalfHourItems(data: OriginHalfHourData): List<Map<String, Any>> {
 }
 
 // 读取与同步数据
-fun ModuleDefinitionBuilder.defineReadData(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.defineReadData(module: SmartWearableLinkSDKModule) {
   AsyncFunction("readBattery") { promise: Promise ->
     if (!module.isInitialized || module.connectedDeviceId == null) {
       promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)

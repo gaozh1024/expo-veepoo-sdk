@@ -1,4 +1,4 @@
-package expo.modules.veepoo
+package expo.modules.smartwearablelink
 
 import com.inuker.bluetooth.library.Code
 import com.veepoo.protocol.VPOperateManager
@@ -11,7 +11,7 @@ import com.veepoo.protocol.model.enums.EBloodGlucoseStatus
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.ModuleDefinitionBuilder
 
-fun ModuleDefinitionBuilder.defineTests(module: VeepooSDKModule) {
+fun ModuleDefinitionBuilder.defineTests(module: SmartWearableLinkSDKModule) {
   AsyncFunction("startHeartRateTest") { promise: Promise ->
     if (!module.isInitialized || module.connectedDeviceId == null) {
       promise.reject("DEVICE_NOT_CONNECTED", "Device not connected", null)
