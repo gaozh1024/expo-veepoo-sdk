@@ -61,6 +61,8 @@ Thumbs.db
 *.local
 
 # Android
+!android/src/
+!android/src/**
 android/.gradle/
 android/app/build/
 android/build/
