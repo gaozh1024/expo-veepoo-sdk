@@ -86,9 +86,10 @@ fun getBluetoothPermissionsToRequest(context: android.content.Context): List<Str
     }
   }
 
-  if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+  if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S &&
+    ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH)
     != PackageManager.PERMISSION_GRANTED) {
-    permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
+    permissions.add(Manifest.permission.BLUETOOTH)
   }
 
   return permissions

@@ -68,8 +68,6 @@ const withAndroidBluetoothPermissions: ConfigPlugin = (config) => {
       'android.permission.BLUETOOTH_ADMIN',
       'android.permission.BLUETOOTH_CONNECT',
       'android.permission.BLUETOOTH_SCAN',
-      'android.permission.ACCESS_FINE_LOCATION',
-      'android.permission.ACCESS_COARSE_LOCATION',
     ];
 
     permissions.forEach((permission) => {
