@@ -22,6 +22,7 @@ node_modules/
 !CHANGELOG.md
 
 # Development tools
+.omx/
 .eslintrc*
 .eslintignore
 .prettierrc*

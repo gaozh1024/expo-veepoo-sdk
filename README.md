@@ -1,22 +1,22 @@
-# @gaozh1024/expo-veepoo-sdk
+# @gaozh1024/expo-smart-wearable-link
 
-[![npm version](https://badge.fury.io/js/@gaozh1024%2Fexpo-veepoo-sdk.svg)](https://badge.fury.io/js/@gaozh1024%2Fexpo-veepoo-sdk)
+[![npm version](https://badge.fury.io/js/@gaozh1024%2Fexpo-smart-wearable-link.svg)](https://badge.fury.io/js/@gaozh1024%2Fexpo-smart-wearable-link)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android-lightgrey.svg)](https://github.com/gaozh1024/expo-veepoo-sdk)
+[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android-lightgrey.svg)](https://github.com/gaozh1024/expo-smart-wearable-link)
 
-Expo 模块，用于 Veepoo 设备的蓝牙连接、数据读取和健康测试。
+Expo 模块，用于智能穿戴设备的蓝牙连接、数据读取和健康测试。
 
 当前最新版本：`1.2.7`
 
 - 使用文档：当前 `README.md`
-- 升级说明：[1.2.7.md](/Users/gzh/Projects/framework/expo-veepoo-sdk/docs/release-notes/1.2.7.md)
-- 历史版本：[docs/README.md](/Users/gzh/Projects/framework/expo-veepoo-sdk/docs/README.md)
+- 升级说明：[1.2.7.md](docs/release-notes/1.2.7.md)
+- 历史版本：[docs/README.md](docs/README.md)
 
 这个包的原则是：
 
 - Android 和 iOS 原生层尽量贴近各自 SDK 文档
 - 对 App 暴露时，统一在 TypeScript 层做返回值归一化
-- App 侧通过 `VeepooSDK` 使用时，拿到的是统一后的返回结构
+- App 侧通过 `SmartWearableLinkSDK` 使用时，拿到的是统一后的返回结构
 
 ## 平台要求
 
@@ -28,13 +28,13 @@ Expo 模块，用于 Veepoo 设备的蓝牙连接、数据读取和健康测试�
 ## 安装
 
 ```bash
-npm install @gaozh1024/expo-veepoo-sdk
+npm install @gaozh1024/expo-smart-wearable-link
 ```
 
 或
 
 ```bash
-yarn add @gaozh1024/expo-veepoo-sdk
+yarn add @gaozh1024/expo-smart-wearable-link
 ```
 
 ## Expo 配置
@@ -48,7 +48,7 @@ yarn add @gaozh1024/expo-veepoo-sdk
   "expo": {
     "plugins": [
       [
-        "@gaozh1024/expo-veepoo-sdk",
+        "@gaozh1024/expo-smart-wearable-link",
         {
           "bluetoothAlwaysPermission": "需要蓝牙权限来连接设备",
           "bluetoothPeripheralPermission": "需要蓝牙权限来扫描设备"
@@ -88,40 +88,40 @@ npx expo run:android
 ## 快速开始
 
 ```ts
-import VeepooSDK from '@gaozh1024/expo-veepoo-sdk';
+import SmartWearableLinkSDK from '@gaozh1024/expo-smart-wearable-link';
 
-await VeepooSDK.init();
+await SmartWearableLinkSDK.init();
 
-const enabled = await VeepooSDK.checkBluetoothStatus();
+const enabled = await SmartWearableLinkSDK.checkBluetoothStatus();
 if (!enabled) {
   throw new Error('Bluetooth is disabled');
 }
 
-const permission = await VeepooSDK.requestPermissions();
+const permission = await SmartWearableLinkSDK.requestPermissions();
 if (!permission.granted) {
   throw new Error(`Permission denied: ${permission.status}`);
 }
 
-VeepooSDK.on('deviceFound', ({ device }) => {
+SmartWearableLinkSDK.on('deviceFound', ({ device }) => {
   console.log('deviceFound', device.id, device.name, device.rssi);
 });
 
-await VeepooSDK.startScan({ timeout: 10000 });
+await SmartWearableLinkSDK.startScan({ timeout: 10000 });
 ```
 
 连接设备：
 
 ```ts
-await VeepooSDK.connect(deviceId, {
+await SmartWearableLinkSDK.connect(deviceId, {
   password: '0000',
   is24Hour: true,
 });
 
-VeepooSDK.on('deviceConnected', ({ deviceId }) => {
+SmartWearableLinkSDK.on('deviceConnected', ({ deviceId }) => {
   console.log('deviceConnected', deviceId);
 });
 
-VeepooSDK.on('deviceReady', ({ deviceId }) => {
+SmartWearableLinkSDK.on('deviceReady', ({ deviceId }) => {
   console.log('deviceReady', deviceId);
 });
 ```
@@ -129,10 +129,10 @@ VeepooSDK.on('deviceReady', ({ deviceId }) => {
 读取数据：
 
 ```ts
-const battery = await VeepooSDK.readBattery();
-const version = await VeepooSDK.readDeviceVersion();
-const sleepList = await VeepooSDK.readSleepData();
-const sport = await VeepooSDK.readSportStepData();
+const battery = await SmartWearableLinkSDK.readBattery();
+const version = await SmartWearableLinkSDK.readDeviceVersion();
+const sleepList = await SmartWearableLinkSDK.readSleepData();
+const sport = await SmartWearableLinkSDK.readSportStepData();
 
 console.log(battery.chargeState, battery.level);
 console.log(version.deviceNumber, version.hardwareVersion);
@@ -145,10 +145,10 @@ console.log(sport.stepCount, sport.distance);
 App 侧请使用：
 
 ```ts
-import VeepooSDK from '@gaozh1024/expo-veepoo-sdk';
+import SmartWearableLinkSDK from '@gaozh1024/expo-smart-wearable-link';
 ```
 
-不要直接依赖 `NativeVeepooSDK`。`VeepooSDK` 会在 TS 层统一这些返回：
+不要直接依赖 `NativeSmartWearableLinkSDK`。`SmartWearableLinkSDK` 会在 TS 层统一这些返回：
 
 - `requestPermissions`
 - `verifyPassword`
@@ -195,20 +195,20 @@ import VeepooSDK from '@gaozh1024/expo-veepoo-sdk';
 框架内置了一层轻量日志，默认关闭。开启后会把关键链路输出为统一结构，适合排查扫描、连接、读数据和测试流程问题。
 
 ```ts
-import VeepooSDK, { type LogEntry } from '@gaozh1024/expo-veepoo-sdk';
+import SmartWearableLinkSDK, { type LogEntry } from '@gaozh1024/expo-smart-wearable-link';
 
-VeepooSDK
+SmartWearableLinkSDK
   .setLogEnabled(true)
   .setLogger((entry: LogEntry) => {
-    console.log('[veepoo-log]', entry.level, entry.scope, entry.action, entry);
+    console.log('[smart-wearable-link-log]', entry.level, entry.scope, entry.action, entry);
   });
 ```
 
 可用方法：
 
-- `setLogEnabled(enabled: boolean): VeepooSDK`
+- `setLogEnabled(enabled: boolean): SmartWearableLinkSDK`
 - `isLogEnabled(): boolean`
-- `setLogger(logger: ((entry: LogEntry) => void) | null): VeepooSDK`
+- `setLogger(logger: ((entry: LogEntry) => void) | null): SmartWearableLinkSDK`
 
 日志字段：
 
@@ -227,7 +227,7 @@ VeepooSDK
 系统蓝牙状态：
 
 ```ts
-VeepooSDK.on('bluetoothStateChanged', (payload) => {
+SmartWearableLinkSDK.on('bluetoothStateChanged', (payload) => {
   console.log(payload.state, payload.authorization);
 });
 ```
@@ -235,15 +235,15 @@ VeepooSDK.on('bluetoothStateChanged', (payload) => {
 设备断开与连接状态变化：
 
 ```ts
-VeepooSDK.on('deviceDisconnected', ({ deviceId }) => {
+SmartWearableLinkSDK.on('deviceDisconnected', ({ deviceId }) => {
   console.log('deviceDisconnected', deviceId);
 });
 
-VeepooSDK.on('connectionStatusChanged', ({ deviceId, status }) => {
+SmartWearableLinkSDK.on('connectionStatusChanged', ({ deviceId, status }) => {
   console.log('connectionStatusChanged', deviceId, status);
 });
 
-VeepooSDK.on('deviceConnectStatus', ({ deviceId, status, code }) => {
+SmartWearableLinkSDK.on('deviceConnectStatus', ({ deviceId, status, code }) => {
   console.log('deviceConnectStatus', deviceId, status, code);
 });
 ```
@@ -258,9 +258,9 @@ VeepooSDK.on('deviceConnectStatus', ({ deviceId, status, code }) => {
 - `isSDKInitialized(): boolean`
 - `checkBluetoothStatus(): Promise<boolean>`
 - `requestPermissions(): Promise<PermissionsResult>`
-- `setLogEnabled(enabled: boolean): VeepooSDK`
+- `setLogEnabled(enabled: boolean): SmartWearableLinkSDK`
 - `isLogEnabled(): boolean`
-- `setLogger(logger: ((entry: LogEntry) => void) | null): VeepooSDK`
+- `setLogger(logger: ((entry: LogEntry) => void) | null): SmartWearableLinkSDK`
 
 ### 扫描与连接
 
@@ -296,7 +296,7 @@ VeepooSDK.on('deviceConnectStatus', ({ deviceId, status, code }) => {
 历史数据进度事件示例：
 
 ```ts
-VeepooSDK.on('readOriginProgress', ({ progress }) => {
+SmartWearableLinkSDK.on('readOriginProgress', ({ progress }) => {
   console.log(progress.progress); // 0..100，整数
 });
 ```
@@ -346,10 +346,10 @@ VeepooSDK.on('readOriginProgress', ({ progress }) => {
 
 ## 使用建议
 
-- 所有调用都从 `await VeepooSDK.init()` 开始
+- 所有调用都从 `await SmartWearableLinkSDK.init()` 开始
 - 在连接前先检查蓝牙和权限
 - 连接相关请同时监听 `deviceDisconnected`、`connectionStatusChanged`、`bluetoothStateChanged`
-- 如果业务依赖统一返回，只通过 `VeepooSDK` 调用，不直接使用 native module
+- 如果业务依赖统一返回，只通过 `SmartWearableLinkSDK` 调用，不直接使用 native module
 - iOS 端包含原生 frameworks，不能在 Expo Go 中运行
 
 ## 本地开发
@@ -381,8 +381,8 @@ npm publish
 
 Vendor SDK 文档保存在仓库内：
 
-- `docs/VeepooSDK Android Api.md`
-- `docs/VeepooSDK iOS Api.md`
+- `docs/SmartWearableLinkSDK Android Api.md`
+- `docs/SmartWearableLinkSDK iOS Api.md`
 
 ## 许可证
 

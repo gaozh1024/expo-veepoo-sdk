@@ -1,10 +1,10 @@
 {
-  "name": "expo-veepoo-sdk",
+  "name": "expo-smart-wearable-link",
   "version": "1.2.7",
-  "description": "Expo module for Veepoo SDK Bluetooth connectivity",
+  "description": "Expo module for Smart Wearable Link Bluetooth connectivity",
   "platforms": ["ios", "android"],
   "ios": {
-    "podspecPath": "./ios/VeepooSDK.podspec"
+    "podspecPath": "./ios/SmartWearableLinkSDK.podspec"
   },
   "android": {
     "gradlePath": "./android/build.gradle"

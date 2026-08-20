@@ -1,9 +1,9 @@
 /**
- * expo-veepoo-sdk TypeScript Type Definitions
- * Based on official Veepoo SDK Android/iOS API documentation
+ * expo-smart-wearable-link TypeScript Type Definitions
+ * Based on official SmartWearableLink SDK Android/iOS API documentation
  */
 
-export interface VeepooDevice {
+export interface SmartWearableLinkDevice {
   id: string;
   name: string;
   rssi: number;
@@ -29,7 +29,7 @@ export interface ScanOptions {
 }
 
 export interface ScanResult {
-  device: VeepooDevice;
+  device: SmartWearableLinkDevice;
   timestamp: number;
 }
 
@@ -479,7 +479,7 @@ export interface CustomSettingData {
   [key: string]: string | number | boolean;
 }
 
-export type VeepooErrorCode =
+export type SmartWearableLinkErrorCode =
   | 'UNKNOWN'
   | 'PERMISSION_DENIED'
   | 'CONNECTION_FAILED'
@@ -494,8 +494,8 @@ export type VeepooErrorCode =
   | 'TIMEOUT'
   | 'NOT_WEARING';
 
-export interface VeepooError {
-  code: VeepooErrorCode;
+export interface SmartWearableLinkError {
+  code: SmartWearableLinkErrorCode;
   message: string;
   deviceId?: string;
 }
@@ -525,7 +525,7 @@ export interface LogEntry {
   error?: string;
 }
 
-export type VeepooEvent =
+export type SmartWearableLinkEvent =
   | 'deviceFound'
   | 'deviceConnected'
   | 'deviceDisconnected'
@@ -552,8 +552,8 @@ export type VeepooEvent =
   | 'connectionStatusChanged'
   | 'error';
 
-export interface VeepooEventPayload {
-  deviceFound: { device: VeepooDevice; timestamp: number };
+export interface SmartWearableLinkEventPayload {
+  deviceFound: { device: SmartWearableLinkDevice; timestamp: number };
   deviceConnected: { deviceId: string; deviceVersion?: string; deviceNumber?: string; isOadModel?: boolean };
   deviceDisconnected: { deviceId: string };
   deviceConnectStatus: { deviceId: string; status: ConnectionStatus; code?: number };
@@ -577,7 +577,7 @@ export interface VeepooEventPayload {
   bloodGlucoseData: { deviceId: string; data: BloodGlucoseData };
   batteryData: { deviceId: string; data: BatteryInfo };
   connectionStatusChanged: { deviceId: string; status: ConnectionStatus };
-  error: VeepooError;
+  error: SmartWearableLinkError;
 }
 
 export type OperationStatus = 'success' | 'fail' | 'unknown';
